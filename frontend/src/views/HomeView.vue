@@ -32,7 +32,7 @@ const handleCart = () => {
       <header>
         <div class="container">
           <div class="header-content">
-            <router-link to="/" class="logo">FreshCart</router-link>
+            <router-link to="/" class="logo">Deployma</router-link>
 
             <div class="search-bar">
               <input
@@ -310,7 +310,7 @@ const handleCart = () => {
       <section class="services">
         <div class="container">
           <div class="section-header">
-            <h2>Why Choose FreshCart</h2>
+            <h2>Why Choose Deployma</h2>
           </div>
           <div class="service-grid">
             <div class="service-card">
@@ -343,7 +343,7 @@ const handleCart = () => {
         <div class="container">
           <div class="footer-content">
             <div class="footer-section">
-              <h3>About FreshCart</h3>
+              <h3>About Deployma</h3>
               <ul class="footer-links">
                 <li><a href="#">About Us</a></li>
                 <li><a href="#">Careers</a></li>
