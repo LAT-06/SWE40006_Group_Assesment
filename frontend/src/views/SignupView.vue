@@ -100,7 +100,7 @@ const isValidEmail = (email: string) => {
       <!-- Header -->
       <header>
         <div class="header-content">
-          <router-link to="/" class="logo">FreshCart</router-link>
+          <router-link to="/" class="logo">Deployma</router-link>
           <router-link to="/" class="back-link">← Back to Home</router-link>
         </div>
       </header>
@@ -112,10 +112,12 @@ const isValidEmail = (email: string) => {
           <div class="auth-side signup-side">
             <h1 class="auth-title">Create account</h1>
             <p class="auth-subtitle">
-              Join FreshCart and get fresh groceries delivered
+              Join Deployma and get fresh groceries delivered
             </p>
 
-            <div v-if="signupError" class="error-message">{{ signupError }}</div>
+            <div v-if="signupError" class="error-message">
+              {{ signupError }}
+            </div>
             <div v-if="signupSuccess" class="success-message">
               {{ signupSuccess }}
             </div>
@@ -134,7 +136,9 @@ const isValidEmail = (email: string) => {
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="signup-email">Email Address</label>
+                <label class="form-label" for="signup-email"
+                  >Email Address</label
+                >
                 <input
                   v-model="signupEmail"
                   type="email"
@@ -198,7 +202,9 @@ const isValidEmail = (email: string) => {
                 class="submit-btn"
                 :disabled="authStore.loading"
               >
-                {{ authStore.loading ? "Creating account..." : "Create Account" }}
+                {{
+                  authStore.loading ? "Creating account..." : "Create Account"
+                }}
               </button>
             </form>
 
@@ -214,7 +220,8 @@ const isValidEmail = (email: string) => {
             </button>
 
             <div class="login-link-container">
-                Already have an account? <router-link to="/login" class="form-link">Sign In</router-link>
+              Already have an account?
+              <router-link to="/login" class="form-link">Sign In</router-link>
             </div>
           </div>
         </div>
@@ -222,7 +229,8 @@ const isValidEmail = (email: string) => {
 
       <!-- Footer -->
       <footer>
-        © 2026 FreshCart. All rights reserved. | Terms of Service | Privacy Policy
+        © 2026 Deployma. All rights reserved. | Terms of Service | Privacy
+        Policy
       </footer>
     </div>
   </div>
@@ -557,8 +565,8 @@ const isValidEmail = (email: string) => {
 }
 
 .login-link-container {
-    margin-top: 20px;
-    text-align: center;
-    font-size: 14px;
+  margin-top: 20px;
+  text-align: center;
+  font-size: 14px;
 }
 </style>

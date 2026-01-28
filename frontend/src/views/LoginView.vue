@@ -67,7 +67,7 @@ const isValidEmail = (email: string) => {
       <!-- Header -->
       <header>
         <div class="header-content">
-          <router-link to="/" class="logo">FreshCart</router-link>
+          <router-link to="/" class="logo">Deployma</router-link>
           <router-link to="/" class="back-link">← Back to Home</router-link>
         </div>
       </header>
@@ -153,7 +153,7 @@ const isValidEmail = (email: string) => {
 
       <!-- Footer -->
       <footer>
-        © 2026 FreshCart. All rights reserved. | Terms of Service | Privacy
+        © 2026 Deployma. All rights reserved. | Terms of Service | Privacy
         Policy
       </footer>
     </div>

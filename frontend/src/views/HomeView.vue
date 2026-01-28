@@ -379,9 +379,7 @@ const handleCart = () => {
               </ul>
             </div>
           </div>
-          <div class="footer-bottom">
-            © 2026 FreshCart. All rights reserved.
-          </div>
+          <div class="footer-bottom">© 2026 Deployma. All rights reserved.</div>
         </div>
       </footer>
     </div>

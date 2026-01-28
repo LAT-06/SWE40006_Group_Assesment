@@ -35,7 +35,7 @@ const stats = ref({
       <header>
         <div class="header-content">
           <div style="display: flex; align-items: center; gap: 16px">
-            <div class="logo">FreshCart Admin</div>
+            <div class="logo">Deployma Admin</div>
             <span class="admin-badge">ADMIN PORTAL</span>
           </div>
           <div class="header-actions">
