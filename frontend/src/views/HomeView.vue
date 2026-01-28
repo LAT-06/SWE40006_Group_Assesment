@@ -1,18 +1,96 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useCartStore } from "@/stores/cart";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const cartStore = useCartStore();
 
-const cartCount = ref(3);
 const searchQuery = ref("");
 
-const addToCart = (productName: string) => {
-  cartCount.value++;
-  // Visual feedback would be handled here
-  console.log(`Added ${productName} to cart`);
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  size: string;
+  icon: string;
+  badge?: string;
+}
+
+const products = ref<Product[]>([
+  {
+    id: 1,
+    name: "Organic Avocados",
+    size: "4 pack",
+    price: 5.99,
+    icon: "🥑",
+    badge: "20% OFF",
+  },
+  {
+    id: 2,
+    name: "Fresh Strawberries",
+    size: "1 lb",
+    price: 4.49,
+    icon: "🍓",
+  },
+  {
+    id: 3,
+    name: "Sourdough Bread",
+    size: "1 loaf",
+    price: 6.99,
+    icon: "🥖",
+    badge: "NEW",
+  },
+  {
+    id: 4,
+    name: "Organic Whole Milk",
+    size: "1 gallon",
+    price: 7.49,
+    icon: "🥛",
+  },
+  {
+    id: 5,
+    name: "Grass-Fed Beef",
+    size: "1 lb",
+    price: 12.99,
+    icon: "🥩",
+    badge: "15% OFF",
+  },
+  {
+    id: 6,
+    name: "Aged Cheddar Cheese",
+    size: "8 oz",
+    price: 8.99,
+    icon: "🧀",
+  },
+  {
+    id: 7,
+    name: "Heirloom Tomatoes",
+    size: "1 lb",
+    price: 5.49,
+    icon: "🍅",
+  },
+  {
+    id: 8,
+    name: "Free-Range Eggs",
+    size: "12 count",
+    price: 6.99,
+    icon: "🥚",
+    badge: "POPULAR",
+  },
+]);
+
+const addToCart = (product: Product) => {
+  cartStore.addItem({
+    name: product.name,
+    price: product.price,
+    size: product.size,
+    icon: product.icon,
+    quantity: 1,
+  });
+  console.log(`Added ${product.name} to cart`);
 };
 
 const handleSignIn = () => {
@@ -20,8 +98,7 @@ const handleSignIn = () => {
 };
 
 const handleCart = () => {
-  // Navigate to cart page when implemented
-  console.log("Navigate to cart");
+  router.push("/cart");
 };
 </script>
 
@@ -50,12 +127,17 @@ const handleCart = () => {
               >
                 Sign In
               </button>
-              <button v-else class="icon-btn" @click="authStore.signOut">
-                Sign Out
-              </button>
+              <template v-else>
+                <button class="icon-btn" @click="router.push('/profile')">
+                  Profile
+                </button>
+                <button class="icon-btn" @click="authStore.signOut">
+                  Sign Out
+                </button>
+              </template>
               <button class="cart-btn" @click="handleCart">
                 Cart
-                <span class="cart-count">{{ cartCount }}</span>
+                <span class="cart-count">{{ cartStore.totalItems }}</span>
               </button>
             </div>
           </div>
@@ -163,140 +245,23 @@ const handleCart = () => {
             <a href="#" class="view-all">View all →</a>
           </div>
           <div class="product-grid">
-            <div class="product-card">
-              <div class="product-badge">20% OFF</div>
-              <div class="product-image">🥑</div>
-              <div class="product-info">
-                <div class="product-title">Organic Avocados</div>
-                <div class="product-weight">4 pack</div>
-                <div class="product-footer">
-                  <div class="product-price">$5.99</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Organic Avocados')"
-                  >
-                    Add
-                  </button>
-                </div>
+            <div
+              v-for="product in products"
+              :key="product.id"
+              class="product-card"
+              @click="router.push(`/product/${product.id}`)"
+              style="cursor: pointer"
+            >
+              <div v-if="product.badge" class="product-badge">
+                {{ product.badge }}
               </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-image">🍓</div>
+              <div class="product-image">{{ product.icon }}</div>
               <div class="product-info">
-                <div class="product-title">Fresh Strawberries</div>
-                <div class="product-weight">1 lb</div>
+                <div class="product-title">{{ product.name }}</div>
+                <div class="product-weight">{{ product.size }}</div>
                 <div class="product-footer">
-                  <div class="product-price">$4.49</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Fresh Strawberries')"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-badge">NEW</div>
-              <div class="product-image">🥖</div>
-              <div class="product-info">
-                <div class="product-title">Sourdough Bread</div>
-                <div class="product-weight">1 loaf</div>
-                <div class="product-footer">
-                  <div class="product-price">$6.99</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Sourdough Bread')"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-image">🥛</div>
-              <div class="product-info">
-                <div class="product-title">Organic Whole Milk</div>
-                <div class="product-weight">1 gallon</div>
-                <div class="product-footer">
-                  <div class="product-price">$7.49</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Organic Whole Milk')"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-badge">15% OFF</div>
-              <div class="product-image">🥩</div>
-              <div class="product-info">
-                <div class="product-title">Grass-Fed Beef</div>
-                <div class="product-weight">1 lb</div>
-                <div class="product-footer">
-                  <div class="product-price">$12.99</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Grass-Fed Beef')"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-image">🧀</div>
-              <div class="product-info">
-                <div class="product-title">Aged Cheddar Cheese</div>
-                <div class="product-weight">8 oz</div>
-                <div class="product-footer">
-                  <div class="product-price">$8.99</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Aged Cheddar Cheese')"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-image">🍅</div>
-              <div class="product-info">
-                <div class="product-title">Heirloom Tomatoes</div>
-                <div class="product-weight">1 lb</div>
-                <div class="product-footer">
-                  <div class="product-price">$5.49</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Heirloom Tomatoes')"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="product-card">
-              <div class="product-badge">POPULAR</div>
-              <div class="product-image">🥚</div>
-              <div class="product-info">
-                <div class="product-title">Free-Range Eggs</div>
-                <div class="product-weight">12 count</div>
-                <div class="product-footer">
-                  <div class="product-price">$6.99</div>
-                  <button
-                    class="add-to-cart"
-                    @click="addToCart('Free-Range Eggs')"
-                  >
+                  <div class="product-price">${{ product.price }}</div>
+                  <button class="add-to-cart" @click.stop="addToCart(product)">
                     Add
                   </button>
                 </div>

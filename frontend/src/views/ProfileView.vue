@@ -1,0 +1,953 @@
+<script setup lang="ts">
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+
+const router = useRouter();
+const authStore = useAuthStore();
+const activeSection = ref("profile");
+
+const switchSection = (sectionId: string) => {
+  activeSection.value = sectionId;
+};
+
+const reorder = () => {
+  if (confirm("Add these items to your cart?")) {
+    alert("Items added to cart! Redirecting to cart page...");
+    setTimeout(() => {
+      router.push("/cart");
+    }, 1000);
+  }
+};
+
+const addNewAddress = () => {
+  window.alert("Add new address form would open here");
+};
+
+const logout = () => {
+  authStore.signOut();
+  router.push("/");
+};
+</script>
+
+<template>
+  <div class="profile-page">
+    <!-- Header -->
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <router-link to="/" class="logo">Deployma</router-link>
+          <router-link to="/" class="back-link">← Back to Home</router-link>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="container">
+        <div class="account-layout">
+          <!-- Sidebar -->
+          <aside class="sidebar">
+            <div class="profile-header">
+              <div class="avatar">
+                {{ authStore.user?.user_metadata?.name?.charAt(0) || "U" }}
+              </div>
+              <div class="profile-name">
+                {{ authStore.user?.user_metadata?.name || "User" }}
+              </div>
+              <div class="profile-email">
+                {{ authStore.user?.email || "user@email.com" }}
+              </div>
+            </div>
+            <nav class="nav-menu">
+              <a
+                href="#"
+                class="nav-item"
+                :class="{ active: activeSection === 'profile' }"
+                @click.prevent="switchSection('profile')"
+              >
+                <span class="nav-icon">👤</span>
+                <span>Profile</span>
+              </a>
+              <a
+                href="#"
+                class="nav-item"
+                :class="{ active: activeSection === 'orders' }"
+                @click.prevent="switchSection('orders')"
+              >
+                <span class="nav-icon">📦</span>
+                <span>My Orders</span>
+              </a>
+              <a
+                href="#"
+                class="nav-item"
+                :class="{ active: activeSection === 'addresses' }"
+                @click.prevent="switchSection('addresses')"
+              >
+                <span class="nav-icon">📍</span>
+                <span>Saved Addresses</span>
+              </a>
+              <a
+                href="#"
+                class="nav-item"
+                :class="{ active: activeSection === 'settings' }"
+                @click.prevent="switchSection('settings')"
+              >
+                <span class="nav-icon">⚙️</span>
+                <span>Settings</span>
+              </a>
+              <a
+                href="#"
+                class="nav-item"
+                style="color: #e74c3c"
+                @click.prevent="logout"
+              >
+                <span class="nav-icon">🚪</span>
+                <span>Logout</span>
+              </a>
+            </nav>
+          </aside>
+
+          <!-- Main Content -->
+          <main>
+            <!-- Profile Section -->
+            <section
+              id="profile"
+              class="content-section"
+              :class="{ active: activeSection === 'profile' }"
+            >
+              <div class="section-header">
+                <h1 class="section-title">My Profile</h1>
+                <p class="section-subtitle">Manage your personal information</p>
+              </div>
+
+              <div class="info-card">
+                <div class="info-card-title">
+                  <span>Personal Information</span>
+                  <button class="edit-btn">✏️ Edit</button>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Full Name:</span>
+                  <span class="info-value">{{
+                    authStore.user?.user_metadata?.name || "Nguyen Van A"
+                  }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Email:</span>
+                  <span class="info-value">{{
+                    authStore.user?.email || "nguyen@email.com"
+                  }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Phone:</span>
+                  <span class="info-value">+84 123 456 789</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Member Since:</span>
+                  <span class="info-value">January 2026</span>
+                </div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-card-title">
+                  <span>Account Statistics</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Total Orders:</span>
+                  <span class="info-value">24</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Total Spent:</span>
+                  <span class="info-value">$1,247.85</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Loyalty Points:</span>
+                  <span class="info-value">1,248 points</span>
+                </div>
+              </div>
+            </section>
+
+            <!-- Orders Section -->
+            <section
+              id="orders"
+              class="content-section"
+              :class="{ active: activeSection === 'orders' }"
+            >
+              <div class="section-header">
+                <h1 class="section-title">My Orders</h1>
+                <p class="section-subtitle">View and track your order history</p>
+              </div>
+
+              <div class="orders-filter">
+                <button class="filter-btn active">All Orders</button>
+                <button class="filter-btn">Delivered</button>
+                <button class="filter-btn">Processing</button>
+                <button class="filter-btn">Cancelled</button>
+              </div>
+
+              <div class="order-card">
+                <div class="order-header">
+                  <div>
+                    <div class="order-id">Order #ORD-1234</div>
+                    <div class="order-date">Placed on Jan 28, 2026</div>
+                  </div>
+                  <div class="order-status status-processing">
+                    Out for Delivery
+                  </div>
+                </div>
+                <div class="order-body">
+                  <div class="order-items">
+                    <div class="order-item">
+                      <div class="item-icon">🥑</div>
+                      <div>
+                        <div class="item-name">Organic Avocado</div>
+                        <div class="item-qty">Qty: 2</div>
+                      </div>
+                    </div>
+                    <div class="order-item">
+                      <div class="item-icon">🍓</div>
+                      <div>
+                        <div class="item-name">Fresh Strawberries</div>
+                        <div class="item-qty">Qty: 1</div>
+                      </div>
+                    </div>
+                    <div class="order-item">
+                      <div class="item-icon">🥛</div>
+                      <div>
+                        <div class="item-name">Organic Whole Milk</div>
+                        <div class="item-qty">Qty: 1</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="order-footer">
+                    <div class="order-total">Total: $19.98</div>
+                    <div class="order-actions">
+                      <a href="#" class="btn btn-primary">Track Order</a>
+                      <button class="btn btn-secondary" @click="reorder">
+                        🔄 Reorder
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-header">
+                  <div>
+                    <div class="order-id">Order #ORD-1233</div>
+                    <div class="order-date">Placed on Jan 25, 2026</div>
+                  </div>
+                  <div class="order-status status-delivered">Delivered</div>
+                </div>
+                <div class="order-body">
+                  <div class="order-items">
+                    <div class="order-item">
+                      <div class="item-icon">🥖</div>
+                      <div>
+                        <div class="item-name">Sourdough Bread</div>
+                        <div class="item-qty">Qty: 1</div>
+                      </div>
+                    </div>
+                    <div class="order-item">
+                      <div class="item-icon">🧀</div>
+                      <div>
+                        <div class="item-name">Aged Cheddar</div>
+                        <div class="item-qty">Qty: 1</div>
+                      </div>
+                    </div>
+                    <div class="order-item">
+                      <div class="item-icon">🍅</div>
+                      <div>
+                        <div class="item-name">Heirloom Tomatoes</div>
+                        <div class="item-qty">Qty: 2</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="order-footer">
+                    <div class="order-total">Total: $26.47</div>
+                    <div class="order-actions">
+                      <a href="#" class="btn btn-secondary">View Details</a>
+                      <button class="btn btn-primary" @click="reorder">
+                        🔄 Reorder
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-header">
+                  <div>
+                    <div class="order-id">Order #ORD-1230</div>
+                    <div class="order-date">Placed on Jan 22, 2026</div>
+                  </div>
+                  <div class="order-status status-delivered">Delivered</div>
+                </div>
+                <div class="order-body">
+                  <div class="order-items">
+                    <div class="order-item">
+                      <div class="item-icon">🥩</div>
+                      <div>
+                        <div class="item-name">Grass-Fed Beef</div>
+                        <div class="item-qty">Qty: 1</div>
+                      </div>
+                    </div>
+                    <div class="order-item">
+                      <div class="item-icon">🥚</div>
+                      <div>
+                        <div class="item-name">Free-Range Eggs</div>
+                        <div class="item-qty">Qty: 2</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="order-footer">
+                    <div class="order-total">Total: $26.97</div>
+                    <div class="order-actions">
+                      <a href="#" class="btn btn-secondary">View Details</a>
+                      <button class="btn btn-primary" @click="reorder">
+                        🔄 Reorder
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Addresses Section -->
+            <section
+              id="addresses"
+              class="content-section"
+              :class="{ active: activeSection === 'addresses' }"
+            >
+              <div class="section-header">
+                <h1 class="section-title">Saved Addresses</h1>
+                <p class="section-subtitle">Manage your delivery addresses</p>
+              </div>
+
+              <div class="addresses-grid">
+                <div class="address-card default">
+                  <div class="default-badge">DEFAULT</div>
+                  <div class="address-name">Home</div>
+                  <div class="address-details">
+                    Nguyen Van A<br />
+                    +84 123 456 789<br />
+                    123 Nguyen Hue Street<br />
+                    District 1, Ho Chi Minh City
+                  </div>
+                  <div class="address-actions">
+                    <button class="btn btn-secondary">Edit</button>
+                    <button class="btn btn-secondary">Delete</button>
+                  </div>
+                </div>
+
+                <div class="address-card">
+                  <div class="address-name">Office</div>
+                  <div class="address-details">
+                    Nguyen Van A<br />
+                    +84 123 456 789<br />
+                    456 Le Van Sy Street<br />
+                    District 3, Ho Chi Minh City
+                  </div>
+                  <div class="address-actions">
+                    <button class="btn btn-secondary">Set Default</button>
+                    <button class="btn btn-secondary">Edit</button>
+                  </div>
+                </div>
+
+                <div
+                  class="add-address-card"
+                  @click="addNewAddress"
+                >
+                  <div class="add-icon">➕</div>
+                  <div style="font-weight: 700; color: var(--headline)">
+                    Add New Address
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section
+              id="settings"
+              class="content-section"
+              :class="{ active: activeSection === 'settings' }"
+            >
+              <div class="section-header">
+                <h1 class="section-title">Settings</h1>
+                <p class="section-subtitle">Manage your account preferences</p>
+              </div>
+
+              <div class="info-card">
+                <div class="info-card-title">
+                  <span>Notifications</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Order Updates:</span>
+                  <span class="info-value" style="color: #27ae60"
+                    >✓ Enabled</span
+                  >
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Promotions:</span>
+                  <span class="info-value" style="color: #27ae60"
+                    >✓ Enabled</span
+                  >
+                </div>
+                <div class="info-row">
+                  <span class="info-label">SMS Alerts:</span>
+                  <span class="info-value" style="color: #e74c3c"
+                    >✗ Disabled</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-card-title">
+                  <span>Security</span>
+                  <button class="edit-btn">Change Password</button>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Password:</span>
+                  <span class="info-value">••••••••</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Two-Factor Auth:</span>
+                  <span class="info-value" style="color: #e74c3c"
+                    >✗ Disabled</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-card">
+                <div class="info-card-title">
+                  <span>Privacy</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Share Purchase History:</span>
+                  <span class="info-value" style="color: #e74c3c"
+                    >✗ Disabled</span
+                  >
+                </div>
+                <div class="info-row">
+                  <span class="info-label">Personalized Recommendations:</span>
+                  <span class="info-value" style="color: #27ae60"
+                    >✓ Enabled</span
+                  >
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
+
+.profile-page {
+  font-family: "DM Sans", sans-serif;
+  background: var(--bg);
+  color: var(--paragraph);
+  line-height: 1.6;
+  min-height: 100vh;
+  --bg: #fef6e4;
+  --headline: #001858;
+  --paragraph: #172c66;
+  --button: #f582ae;
+  --button-text: #001858;
+  --stroke: #001858;
+  --main: #f3d2c1;
+  --highlight: #fef6e4;
+  --secondary: #8bd3dd;
+  --tertiary: #f582ae;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header */
+header {
+  background: var(--bg);
+  border-bottom: 3px solid var(--stroke);
+  padding: 20px 0;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-family: "Space Mono", monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--headline);
+  text-decoration: none;
+}
+
+.back-link {
+  color: var(--headline);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 10px 20px;
+  border: 3px solid var(--stroke);
+  background: white;
+  transition: all 0.2s;
+}
+
+.back-link:hover {
+  background: var(--main);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--stroke);
+}
+
+/* Main Layout */
+.main-content {
+  padding: 40px 0;
+}
+
+.account-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 30px;
+}
+
+/* Sidebar */
+.sidebar {
+  background: white;
+  border: 3px solid var(--stroke);
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+.profile-header {
+  padding: 30px;
+  text-align: center;
+  border-bottom: 3px solid var(--stroke);
+  background: var(--main);
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  background: var(--button);
+  border: 4px solid var(--stroke);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--headline);
+  margin: 0 auto 16px;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-bottom: 4px;
+}
+
+.profile-email {
+  font-size: 14px;
+  color: var(--paragraph);
+  opacity: 0.7;
+}
+
+.nav-menu {
+  padding: 20px 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  color: var(--paragraph);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+  border-left: 4px solid transparent;
+}
+
+.nav-item:hover {
+  background: var(--main);
+}
+
+.nav-item.active {
+  background: var(--button);
+  color: var(--button-text);
+  font-weight: 700;
+  border-left-color: var(--stroke);
+}
+
+.nav-icon {
+  font-size: 20px;
+}
+
+/* Content Sections */
+.content-section {
+  display: none;
+}
+
+.content-section.active {
+  display: block;
+}
+
+.section-header {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-bottom: 8px;
+}
+
+.section-subtitle {
+  font-size: 16px;
+  color: var(--paragraph);
+  opacity: 0.8;
+}
+
+/* Profile Info */
+.info-card {
+  background: white;
+  border: 3px solid var(--stroke);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.info-card-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-btn {
+  background: var(--secondary);
+  border: 2px solid var(--stroke);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--stroke);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 2px solid var(--stroke);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  color: var(--paragraph);
+  opacity: 0.8;
+  font-weight: 600;
+}
+
+.info-value {
+  color: var(--headline);
+  font-weight: 600;
+}
+
+/* Orders */
+.orders-filter {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  background: white;
+  border: 3px solid var(--stroke);
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: var(--main);
+}
+
+.filter-btn.active {
+  background: var(--button);
+  color: var(--button-text);
+}
+
+.order-card {
+  background: white;
+  border: 3px solid var(--stroke);
+  margin-bottom: 20px;
+  transition: all 0.2s;
+}
+
+.order-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--stroke);
+}
+
+.order-header {
+  padding: 20px 24px;
+  border-bottom: 3px solid var(--stroke);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg);
+}
+
+.order-id {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--headline);
+}
+
+.order-date {
+  font-size: 14px;
+  color: var(--paragraph);
+  opacity: 0.7;
+}
+
+.order-status {
+  display: inline-block;
+  padding: 6px 16px;
+  border: 2px solid var(--stroke);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-delivered {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-processing {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.order-body {
+  padding: 20px 24px;
+}
+
+.order-items {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-icon {
+  font-size: 32px;
+}
+
+.item-name {
+  font-size: 14px;
+  color: var(--paragraph);
+}
+
+.item-qty {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20px;
+  border-top: 2px solid var(--stroke);
+}
+
+.order-total {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--headline);
+}
+
+.order-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: 3px solid var(--stroke);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: var(--button);
+  color: var(--button-text);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--headline);
+}
+
+.btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--stroke);
+}
+
+/* Addresses */
+.addresses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.address-card {
+  background: white;
+  border: 3px solid var(--stroke);
+  padding: 24px;
+  position: relative;
+}
+
+.address-card.default {
+  background: var(--main);
+}
+
+.default-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: var(--button);
+  border: 2px solid var(--stroke);
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--button-text);
+}
+
+.address-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-bottom: 12px;
+}
+
+.address-details {
+  font-size: 14px;
+  color: var(--paragraph);
+  line-height: 1.8;
+  margin-bottom: 16px;
+}
+
+.address-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.add-address-card {
+  background: var(--secondary);
+  border: 3px dashed var(--stroke);
+  padding: 60px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-address-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--stroke);
+}
+
+.add-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Empty State */
+.empty-state {
+  background: white;
+  border: 3px solid var(--stroke);
+  padding: 60px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+.empty-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-bottom: 12px;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: var(--paragraph);
+  margin-bottom: 24px;
+}
+
+/* Responsive */
+@media (max-width: 968px) {
+  .account-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+  }
+
+  .orders-filter {
+    flex-wrap: wrap;
+  }
+
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .addresses-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
