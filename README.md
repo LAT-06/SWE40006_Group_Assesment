@@ -1,4 +1,4 @@
-# FreshCart - Grocery Delivery Platform
+# Deployma - Grocery Delivery Platform
 
 A full-stack grocery delivery platform built with Vue.js, TypeScript, Express, and Supabase.
 
