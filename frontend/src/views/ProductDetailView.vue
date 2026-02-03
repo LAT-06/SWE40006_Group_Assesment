@@ -121,7 +121,8 @@ const switchTab = (tabId: string) => {
             <div class="product-rating">
               <div class="stars">★★★★★</div>
               <span class="rating-text"
-                >({{ product.rating }}/5.0 from {{ product.reviews }} reviews)</span
+                >({{ product.rating }}/5.0 from
+                {{ product.reviews }} reviews)</span
               >
             </div>
 
@@ -207,8 +208,8 @@ const switchTab = (tabId: string) => {
             <h3>About This Product</h3>
             <p>
               Our organic avocados are carefully selected from certified organic
-              farms that prioritize sustainable farming practices. Each avocado is
-              hand-picked at the perfect ripeness to ensure you receive the
+              farms that prioritize sustainable farming practices. Each avocado
+              is hand-picked at the perfect ripeness to ensure you receive the
               highest quality fruit.
             </p>
             <p>
@@ -233,46 +234,48 @@ const switchTab = (tabId: string) => {
             <h3>Nutritional Information</h3>
             <p>Per serving (1 avocado, approximately 150g)</p>
             <table class="nutrition-table">
-              <tr>
-                <td>Calories</td>
-                <td>240 kcal</td>
-              </tr>
-              <tr>
-                <td>Total Fat</td>
-                <td>22g</td>
-              </tr>
-              <tr>
-                <td>Saturated Fat</td>
-                <td>3g</td>
-              </tr>
-              <tr>
-                <td>Sodium</td>
-                <td>10mg</td>
-              </tr>
-              <tr>
-                <td>Total Carbohydrates</td>
-                <td>12g</td>
-              </tr>
-              <tr>
-                <td>Dietary Fiber</td>
-                <td>10g</td>
-              </tr>
-              <tr>
-                <td>Protein</td>
-                <td>3g</td>
-              </tr>
-              <tr>
-                <td>Potassium</td>
-                <td>690mg</td>
-              </tr>
-              <tr>
-                <td>Vitamin K</td>
-                <td>26% DV</td>
-              </tr>
-              <tr>
-                <td>Folate</td>
-                <td>20% DV</td>
-              </tr>
+              <tbody>
+                <tr>
+                  <td>Calories</td>
+                  <td>240 kcal</td>
+                </tr>
+                <tr>
+                  <td>Total Fat</td>
+                  <td>22g</td>
+                </tr>
+                <tr>
+                  <td>Saturated Fat</td>
+                  <td>3g</td>
+                </tr>
+                <tr>
+                  <td>Sodium</td>
+                  <td>10mg</td>
+                </tr>
+                <tr>
+                  <td>Total Carbohydrates</td>
+                  <td>12g</td>
+                </tr>
+                <tr>
+                  <td>Dietary Fiber</td>
+                  <td>10g</td>
+                </tr>
+                <tr>
+                  <td>Protein</td>
+                  <td>3g</td>
+                </tr>
+                <tr>
+                  <td>Potassium</td>
+                  <td>690mg</td>
+                </tr>
+                <tr>
+                  <td>Vitamin K</td>
+                  <td>26% DV</td>
+                </tr>
+                <tr>
+                  <td>Folate</td>
+                  <td>20% DV</td>
+                </tr>
+              </tbody>
             </table>
           </div>
 

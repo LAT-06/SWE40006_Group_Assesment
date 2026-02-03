@@ -148,8 +148,12 @@ const handleCart = () => {
       <nav>
         <div class="container">
           <div class="nav-content">
-            <a href="#" class="nav-item active">All Categories</a>
-            <a href="#" class="nav-item">Fresh Produce</a>
+            <router-link to="/category" class="nav-item active"
+              >All Categories</router-link
+            >
+            <router-link to="/category" class="nav-item"
+              >Fresh Produce</router-link
+            >
             <a href="#" class="nav-item">Dairy & Eggs</a>
             <a href="#" class="nav-item">Meat & Seafood</a>
             <a href="#" class="nav-item">Bakery</a>
@@ -200,14 +204,16 @@ const handleCart = () => {
         <div class="container">
           <div class="section-header">
             <h2>Shop by Category</h2>
-            <a href="#" class="view-all">View all →</a>
+            <router-link to="/category" class="view-all"
+              >View all →</router-link
+            >
           </div>
           <div class="category-grid">
-            <a href="#" class="category-card">
+            <router-link to="/category" class="category-card">
               <div class="category-icon">🥬</div>
               <div class="category-name">Fresh Produce</div>
               <div class="category-count">250+ items</div>
-            </a>
+            </router-link>
             <a href="#" class="category-card">
               <div class="category-icon">🥩</div>
               <div class="category-name">Meat & Seafood</div>

@@ -97,3 +97,4 @@ credentials
 # Debug
 debug/
 .vscode-test/
+.gemini/

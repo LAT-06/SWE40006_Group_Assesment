@@ -272,12 +272,13 @@
                   >
                     <div class="payment-icon">{{ method.icon }}</div>
                     <div>
-                                          <div class="payment-name">{{ method.name }}</div>
-                                          <div class="payment-description">
-                                            {{ method.description }}
-                                          </div>
-                                        </div>
-                                      </div>                </div>
+                      <div class="payment-name">{{ method.name }}</div>
+                      <div class="payment-description">
+                        {{ method.description }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div style="margin-top: 24px">
@@ -365,7 +366,18 @@
           Thank you for your order! We'll send you a confirmation email shortly.
           You can track your delivery in real-time.
         </p>
-        <button class="checkout-btn" @click="continueShopping">
+        <button
+          class="checkout-btn"
+          style="margin-bottom: 12px"
+          @click="closeSuccess"
+        >
+          Track Order
+        </button>
+        <button
+          class="continue-shopping"
+          style="margin-top: 0"
+          @click="continueShopping"
+        >
           Continue Shopping
         </button>
       </div>
@@ -485,7 +497,8 @@ function placeOrder() {
 
 function closeSuccess() {
   showSuccess.value = false;
-  continueShopping();
+  // Redirect to order tracking
+  router.push(`/order-tracking/${orderId.value}`);
 }
 
 function continueShopping() {
