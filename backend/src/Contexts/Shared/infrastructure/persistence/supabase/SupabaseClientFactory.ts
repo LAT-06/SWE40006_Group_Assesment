@@ -32,4 +32,24 @@ export class SupabaseClientFactory {
 
     return this.client;
   }
+
+  static createClientWithToken(token: string): SupabaseClient {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('SUPABASE_URL or SUPABASE_ANON_KEY is not defined');
+    }
+
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      },
+      auth: {
+        persistSession: false
+      }
+    });
+  }
 }

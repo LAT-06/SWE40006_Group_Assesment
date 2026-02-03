@@ -140,7 +140,7 @@ const handleReorder = () => {
     <header>
       <div class="container">
         <div class="header-content">
-          <router-link to="/" class="logo">FreshCart</router-link>
+          <router-link to="/" class="logo">Deployma</router-link>
           <router-link to="/" class="back-link">← Back to Home</router-link>
         </div>
       </div>

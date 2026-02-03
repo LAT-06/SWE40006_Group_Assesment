@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useCartStore } from "@/stores/cart";
+import { useProductStore } from "@/stores/products";
 
 const router = useRouter();
 const route = useRoute();
 const cartStore = useCartStore();
+const productStore = useProductStore();
 
 // View state
 const viewMode = ref<"grid" | "list">("grid");
@@ -24,173 +26,47 @@ interface Filters {
 }
 
 const filters = ref<Filters>({
-  categories: ["fruits"],
+  categories: [],
   priceMin: null,
   priceMax: null,
   brands: [],
   dietary: [],
-  inStock: true,
+  inStock: false,
   onSale: false,
 });
 
-// Mock products data
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  brand: string;
-  price: number;
-  originalPrice?: number;
-  weight: string;
-  emoji: string;
-  badge?: string;
-  inStock: boolean;
-  dietary: string[];
-}
+// Initialize from route params
+const initFilters = () => {
+  const categoryParam = route.query.cat as string;
+  const routeSlug = route.params.slug as string;
 
-const allProducts = ref<Product[]>([
-  {
-    id: "1",
-    name: "Organic Avocado",
-    category: "fruits",
-    brand: "organic",
-    price: 5.99,
-    originalPrice: 7.49,
-    weight: "4 pack",
-    emoji: "🥑",
-    badge: "20% OFF",
-    inStock: true,
-    dietary: ["organic-cert", "non-gmo"],
+  if (routeSlug) {
+    filters.value.categories = [routeSlug];
+  } else if (categoryParam) {
+    filters.value.categories = categoryParam.split(",").map((c) => c.trim());
+  } else {
+    // If we navigate to /category without params, maybe clear filters or leave as is?
+    // Let's leave them unless explicitly cleared by user, or clear if 'fresh' load
+  }
+};
+
+watch(
+  () => route.params.slug,
+  () => {
+    // Clear previous category filters and set new one
+    filters.value.categories = [];
+    initFilters();
   },
-  {
-    id: "2",
-    name: "Fresh Strawberries",
-    category: "fruits",
-    brand: "fresh",
-    price: 4.49,
-    weight: "1 lb",
-    emoji: "🍓",
-    inStock: true,
-    dietary: ["local-grown"],
-  },
-  {
-    id: "3",
-    name: "Heirloom Tomatoes",
-    category: "vegetables",
-    brand: "local",
-    price: 5.49,
-    weight: "1 lb",
-    emoji: "🍅",
-    inStock: true,
-    dietary: ["organic-cert", "local-grown"],
-  },
-  {
-    id: "4",
-    name: "Organic Spinach",
-    category: "vegetables",
-    brand: "organic",
-    price: 3.99,
-    weight: "1 bunch",
-    emoji: "🥬",
-    badge: "NEW",
-    inStock: true,
-    dietary: ["organic-cert", "non-gmo"],
-  },
-  {
-    id: "5",
-    name: "English Cucumber",
-    category: "vegetables",
-    brand: "fresh",
-    price: 2.99,
-    weight: "Each",
-    emoji: "🥒",
-    inStock: true,
-    dietary: [],
-  },
-  {
-    id: "6",
-    name: "Navel Oranges",
-    category: "fruits",
-    brand: "fresh",
-    price: 6.99,
-    originalPrice: 8.19,
-    weight: "3 lb bag",
-    emoji: "🍊",
-    badge: "15% OFF",
-    inStock: true,
-    dietary: ["non-gmo"],
-  },
-  {
-    id: "7",
-    name: "Organic Carrots",
-    category: "vegetables",
-    brand: "organic",
-    price: 3.49,
-    weight: "2 lb bag",
-    emoji: "🥕",
-    inStock: true,
-    dietary: ["organic-cert", "non-gmo", "local-grown"],
-  },
-  {
-    id: "8",
-    name: "Fresh Lemons",
-    category: "fruits",
-    brand: "local",
-    price: 4.99,
-    weight: "1 lb bag",
-    emoji: "🍋",
-    inStock: true,
-    dietary: ["local-grown"],
-  },
-  {
-    id: "9",
-    name: "Baby Kale",
-    category: "salads",
-    brand: "organic",
-    price: 4.49,
-    weight: "5 oz",
-    emoji: "🥗",
-    inStock: true,
-    dietary: ["organic-cert", "non-gmo"],
-  },
-  {
-    id: "10",
-    name: "Fresh Basil",
-    category: "herbs",
-    brand: "fresh",
-    price: 2.99,
-    weight: "1 bunch",
-    emoji: "🌿",
-    inStock: true,
-    dietary: ["organic-cert"],
-  },
-  {
-    id: "11",
-    name: "Red Bell Peppers",
-    category: "vegetables",
-    brand: "fresh",
-    price: 5.99,
-    weight: "3 pack",
-    emoji: "🫑",
-    inStock: true,
-    dietary: [],
-  },
-  {
-    id: "12",
-    name: "Fresh Blueberries",
-    category: "fruits",
-    brand: "organic",
-    price: 6.49,
-    weight: "1 pint",
-    emoji: "🫐",
-    inStock: true,
-    dietary: ["organic-cert", "non-gmo"],
-  },
-]);
+);
+
+onMounted(async () => {
+  await productStore.fetchProducts();
+  initFilters();
+});
 
 // Filtered and sorted products
 const filteredProducts = computed(() => {
-  let products = allProducts.value;
+  let products = productStore.products;
 
   // Filter by search query
   if (searchQuery.value) {
@@ -199,22 +75,26 @@ const filteredProducts = computed(() => {
     );
   }
 
-  // Filter by categories
+  // Filter by categories (using slug)
   if (filters.value.categories.length > 0) {
-    products = products.filter((p) =>
-      filters.value.categories.includes(p.category),
+    products = products.filter(
+      (p) => p.category && filters.value.categories.includes(p.category.slug),
     );
   }
 
   // Filter by brands
   if (filters.value.brands.length > 0) {
-    products = products.filter((p) => filters.value.brands.includes(p.brand));
+    products = products.filter(
+      (p) => p.brand && filters.value.brands.includes(p.brand),
+    );
   }
 
   // Filter by dietary
   if (filters.value.dietary.length > 0) {
-    products = products.filter((p) =>
-      filters.value.dietary.some((d) => p.dietary.includes(d)),
+    products = products.filter(
+      (p) =>
+        p.dietary_tags &&
+        filters.value.dietary.some((d) => p.dietary_tags.includes(d)),
     );
   }
 
@@ -228,12 +108,12 @@ const filteredProducts = computed(() => {
 
   // Filter by stock
   if (filters.value.inStock) {
-    products = products.filter((p) => p.inStock);
+    products = products.filter((p) => p.in_stock);
   }
 
   // Filter by sale
   if (filters.value.onSale) {
-    products = products.filter((p) => p.originalPrice !== undefined);
+    products = products.filter((p) => p.original_price);
   }
 
   // Sort products
@@ -248,7 +128,10 @@ const filteredProducts = computed(() => {
       products = [...products].sort((a, b) => a.name.localeCompare(b.name));
       break;
     case "newest":
-      products = [...products].reverse();
+      // Assuming created_at exists, otherwise fallback
+      products = [...products].sort((a, b) =>
+        (b.created_at || "").localeCompare(a.created_at || ""),
+      );
       break;
   }
 
@@ -259,18 +142,18 @@ const filteredProducts = computed(() => {
 const activeFilterTags = computed(() => {
   const tags: Array<{ key: string; label: string; value: any }> = [];
 
-  filters.value.categories.forEach((cat) => {
+  filters.value.categories.forEach((catSlug) => {
     tags.push({
       key: "category",
-      label: categoryLabels[cat] || cat,
-      value: cat,
+      label: categoryLabels[catSlug] || catSlug,
+      value: catSlug,
     });
   });
 
   filters.value.brands.forEach((brand) => {
     tags.push({
       key: "brand",
-      label: brandLabels[brand] || brand,
+      label: brand,
       value: brand,
     });
   });
@@ -278,7 +161,7 @@ const activeFilterTags = computed(() => {
   filters.value.dietary.forEach((diet) => {
     tags.push({
       key: "dietary",
-      label: dietaryLabels[diet] || diet,
+      label: diet,
       value: diet,
     });
   });
@@ -294,47 +177,29 @@ const activeFilterTags = computed(() => {
   return tags;
 });
 
-// Labels for filters
+// Labels for filters (Map slugs to Names)
 const categoryLabels: Record<string, string> = {
-  fruits: "Fruits",
-  vegetables: "Vegetables",
-  herbs: "Herbs",
-  salads: "Salads",
+  "fresh-produce": "Fresh Produce",
+  "meat-seafood": "Meat & Seafood",
+  "dairy-eggs": "Dairy & Eggs",
+  bakery: "Bakery",
+  "pantry-staples": "Pantry Staples",
+  snacks: "Snacks",
 };
 
-const brandLabels: Record<string, string> = {
-  organic: "Organic Valley",
-  fresh: "Fresh Farms",
-  local: "Local Harvest",
-};
-
-const dietaryLabels: Record<string, string> = {
-  "organic-cert": "Organic Certified",
-  "non-gmo": "Non-GMO",
-  "local-grown": "Locally Grown",
-};
+// Available Categories for Sidebar
+const availableCategories = Object.keys(categoryLabels);
 
 // Filter counts
-const filterCounts = computed(
-  (): Record<string, number> => ({
-    fruits: allProducts.value.filter((p) => p.category === "fruits").length,
-    vegetables: allProducts.value.filter((p) => p.category === "vegetables")
-      .length,
-    herbs: allProducts.value.filter((p) => p.category === "herbs").length,
-    salads: allProducts.value.filter((p) => p.category === "salads").length,
-    organic: allProducts.value.filter((p) => p.brand === "organic").length,
-    fresh: allProducts.value.filter((p) => p.brand === "fresh").length,
-    local: allProducts.value.filter((p) => p.brand === "local").length,
-    "organic-cert": allProducts.value.filter((p) =>
-      p.dietary.includes("organic-cert"),
-    ).length,
-    "non-gmo": allProducts.value.filter((p) => p.dietary.includes("non-gmo"))
-      .length,
-    "local-grown": allProducts.value.filter((p) =>
-      p.dietary.includes("local-grown"),
-    ).length,
-  }),
-);
+const filterCounts = computed((): Record<string, number> => {
+  const counts: Record<string, number> = {};
+  availableCategories.forEach((cat) => {
+    counts[cat] = productStore.products.filter(
+      (p) => p.category?.slug === cat,
+    ).length;
+  });
+  return counts;
+});
 
 // Methods
 const toggleView = (mode: "grid" | "list") => {
@@ -385,13 +250,13 @@ const clearAllFilters = () => {
   };
 };
 
-const addToCart = (product: Product) => {
+const addToCart = (product: any) => {
   cartStore.addItem({
     name: product.name,
     size: product.weight,
     price: product.price,
     quantity: 1,
-    icon: product.emoji,
+    icon: product.image_url,
   });
 };
 
@@ -410,7 +275,7 @@ const goToCart = () => {
     <header class="header">
       <div class="container">
         <div class="header-content">
-          <router-link to="/" class="logo">FreshCart</router-link>
+          <router-link to="/" class="logo">Deployma</router-link>
           <div class="search-bar">
             <input
               v-model="searchQuery"
@@ -434,7 +299,7 @@ const goToCart = () => {
       <div class="breadcrumb">
         <router-link to="/">Home</router-link>
         <span>›</span>
-        <strong>Fresh Produce</strong>
+        <strong>Shop</strong>
       </div>
     </div>
 
@@ -457,7 +322,7 @@ const goToCart = () => {
             <div class="filter-group">
               <div class="filter-group-title">Category</div>
               <div
-                v-for="cat in ['fruits', 'vegetables', 'herbs', 'salads']"
+                v-for="cat in availableCategories"
                 :key="cat"
                 class="filter-option"
               >
@@ -468,7 +333,7 @@ const goToCart = () => {
                   @change="toggleFilter('categories', cat)"
                 />
                 <label :for="cat">{{ categoryLabels[cat] }}</label>
-                <span class="filter-count">({{ filterCounts[cat] }})</span>
+                <span class="filter-count">({{ filterCounts[cat] || 0 }})</span>
               </div>
             </div>
 
@@ -491,44 +356,6 @@ const goToCart = () => {
                   placeholder="Max"
                   min="0"
                 />
-              </div>
-            </div>
-
-            <!-- Brand Filter -->
-            <div class="filter-group">
-              <div class="filter-group-title">Brand</div>
-              <div
-                v-for="brand in ['organic', 'fresh', 'local']"
-                :key="brand"
-                class="filter-option"
-              >
-                <input
-                  :id="brand"
-                  type="checkbox"
-                  :checked="filters.brands.includes(brand)"
-                  @change="toggleFilter('brands', brand)"
-                />
-                <label :for="brand">{{ brandLabels[brand] }}</label>
-                <span class="filter-count">({{ filterCounts[brand] }})</span>
-              </div>
-            </div>
-
-            <!-- Dietary Tags -->
-            <div class="filter-group">
-              <div class="filter-group-title">Dietary</div>
-              <div
-                v-for="diet in ['organic-cert', 'non-gmo', 'local-grown']"
-                :key="diet"
-                class="filter-option"
-              >
-                <input
-                  :id="diet"
-                  type="checkbox"
-                  :checked="filters.dietary.includes(diet)"
-                  @change="toggleFilter('dietary', diet)"
-                />
-                <label :for="diet">{{ dietaryLabels[diet] }}</label>
-                <span class="filter-count">({{ filterCounts[diet] }})</span>
               </div>
             </div>
 
@@ -561,7 +388,7 @@ const goToCart = () => {
             <!-- Products Header -->
             <div class="products-header">
               <div class="category-info">
-                <h1>Fresh Produce</h1>
+                <h1>All Products</h1>
                 <p class="results-count">
                   Showing <span>{{ filteredProducts.length }}</span> products
                 </p>
@@ -615,6 +442,15 @@ const goToCart = () => {
             <!-- Products Grid -->
             <div class="products-container">
               <div
+                v-if="productStore.loading"
+                class="loading-state"
+                style="text-align: center; padding: 40px"
+              >
+                Loading products...
+              </div>
+
+              <div
+                v-else
                 class="products-grid"
                 :class="{ 'list-view': viewMode === 'list' }"
               >
@@ -627,7 +463,7 @@ const goToCart = () => {
                     {{ product.badge }}
                   </div>
                   <div class="product-image" @click="goToProduct(product.id)">
-                    {{ product.emoji }}
+                    {{ product.image_url || "📦" }}
                   </div>
                   <div class="product-info">
                     <div class="product-title" @click="goToProduct(product.id)">
@@ -646,7 +482,10 @@ const goToCart = () => {
                 </div>
               </div>
 
-              <div v-if="filteredProducts.length === 0" class="no-results">
+              <div
+                v-if="!productStore.loading && filteredProducts.length === 0"
+                class="no-results"
+              >
                 <p>No products found matching your filters.</p>
                 <button class="clear-btn" @click="clearAllFilters">
                   Clear All Filters
@@ -654,13 +493,10 @@ const goToCart = () => {
               </div>
             </div>
 
-            <!-- Pagination -->
+            <!-- Pagination (Placeholder) -->
             <div v-if="filteredProducts.length > 0" class="pagination">
               <button class="page-btn">‹</button>
               <button class="page-btn active">1</button>
-              <button class="page-btn">2</button>
-              <button class="page-btn">3</button>
-              <button class="page-btn">4</button>
               <button class="page-btn">›</button>
             </div>
           </div>

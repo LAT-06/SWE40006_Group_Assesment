@@ -359,7 +359,6 @@
     <!-- Success Overlay -->
     <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
       <div class="success-content" @click.stop>
-        <div class="success-icon">✅</div>
         <h2 class="success-title">Order Placed Successfully!</h2>
         <div class="order-number">Order #ORD-{{ orderId }}</div>
         <p class="success-text">

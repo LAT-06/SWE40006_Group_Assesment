@@ -69,7 +69,7 @@ const switchTab = (tabId: string) => {
     <header>
       <div class="container">
         <div class="header-content">
-          <router-link to="/" class="logo">FreshCart</router-link>
+          <router-link to="/" class="logo">Deployma</router-link>
           <div class="search-bar">
             <input type="text" placeholder="Search for products..." />
           </div>

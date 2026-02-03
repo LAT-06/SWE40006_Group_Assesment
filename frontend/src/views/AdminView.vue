@@ -1,16 +1,40 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useProductStore, type Product } from "@/stores/products";
+import { supabase } from "@/lib/supabase";
 
 const router = useRouter();
 const authStore = useAuthStore();
+const productStore = useProductStore();
 
 const activeSection = ref("dashboard");
 const activeTab = ref("all-orders");
 
-const switchSection = (sectionId: string) => {
+// Categories state
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+}
+const categories = ref<Category[]>([]);
+
+const fetchCategories = async () => {
+  const { data, error } = await supabase.from('categories').select('id, name, slug');
+  if (data) {
+    categories.value = data;
+  }
+};
+
+const switchSection = async (sectionId: string) => {
   activeSection.value = sectionId;
+  if (sectionId === 'products') {
+    productStore.fetchProducts();
+    await fetchCategories();
+  } else if (sectionId === 'dashboard') {
+    fetchStats();
+  }
 };
 
 const logout = async () => {
@@ -21,10 +45,115 @@ const logout = async () => {
 };
 
 const stats = ref({
-  todayOrders: 142,
-  todayRevenue: 8450,
-  activeDeliveries: 28,
-  lowStockItems: 12,
+  todayOrders: 0,
+  todayOrdersTrend: 0,
+  todayRevenue: 0,
+  todayRevenueTrend: 0,
+  activeDeliveries: 0,
+  activeDeliveriesTrend: 0,
+  lowStockItems: 0,
+  lowStockItemsTrend: 0
+});
+
+const fetchStats = async () => {
+  try {
+    const session = authStore.session;
+    const token = session?.access_token;
+
+    if (!token) return;
+
+    const response = await fetch("http://localhost:3000/admin/dashboard/stats", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      stats.value = {
+        ...stats.value, // Keep structure
+        ...data // Overwrite with API data
+      };
+    }
+  } catch (error) {
+    console.error("Failed to fetch admin stats", error);
+  }
+};
+
+// Product Management
+const showProductModal = ref(false);
+const editingProduct = ref<Partial<Product>>({});
+const isEditing = ref(false);
+
+const openAddProductModal = () => {
+  editingProduct.value = {
+    in_stock: true,
+    quantity: 0,
+    price: 0,
+    original_price: 0,
+    name: '',
+    slug: '',
+    weight: '',
+    category_id: ''
+  };
+  isEditing.value = false;
+  showProductModal.value = true;
+};
+
+const openEditProductModal = (product: Product) => {
+  editingProduct.value = { ...product };
+  isEditing.value = true;
+  showProductModal.value = true;
+};
+
+const generateSlug = (name: string) => {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+};
+
+// Auto-generate slug when name changes (only in create mode)
+watch(() => editingProduct.value.name, (newName) => {
+  if (!isEditing.value && newName) {
+    editingProduct.value.slug = generateSlug(newName);
+  }
+});
+
+const saveProduct = async () => {
+  try {
+    if (isEditing.value && editingProduct.value.id) {
+      await productStore.updateProduct(editingProduct.value.id, editingProduct.value);
+    } else {
+      await productStore.addProduct(editingProduct.value);
+    }
+    showProductModal.value = false;
+    // alert("Product saved!");
+  } catch (e: any) {
+    alert("Error saving product: " + e.message);
+  }
+};
+
+const deleteProduct = async (id: string) => {
+  if (confirm("Delete this product?")) {
+    try {
+      await productStore.deleteProduct(id);
+    } catch (e: any) {
+      alert("Error deleting product: " + e.message);
+    }
+  }
+};
+
+// Initial fetch
+onMounted(() => {
+  if (activeSection.value === 'products') {
+    fetchCategories();
+  } else if (activeSection.value === 'dashboard') {
+    fetchStats();
+  }
 });
 </script>
 
@@ -152,14 +281,6 @@ const stats = ref({
               >
                 <span>Users</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'settings' }"
-                @click.prevent="switchSection('settings')"
-              >
-                <span>Settings</span>
-              </a>
             </div>
           </nav>
         </aside>
@@ -179,101 +300,178 @@ const stats = ref({
               <div class="stat-card">
                 <div class="stat-label">Total Orders Today</div>
                 <div class="stat-value">{{ stats.todayOrders }}</div>
-                <div class="stat-trend up">↑ 18% from yesterday</div>
+                <div :class="['stat-trend', stats.todayOrdersTrend >= 0 ? 'up' : 'down']">
+                  {{ stats.todayOrdersTrend >= 0 ? '↑' : '↓' }} {{ Math.abs(stats.todayOrdersTrend) }}% from yesterday
+                </div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Revenue Today</div>
                 <div class="stat-value">
                   ${{ stats.todayRevenue.toLocaleString() }}
                 </div>
-                <div class="stat-trend up">↑ 12% from yesterday</div>
+                <div :class="['stat-trend', stats.todayRevenueTrend >= 0 ? 'up' : 'down']">
+                  {{ stats.todayRevenueTrend >= 0 ? '↑' : '↓' }} {{ Math.abs(stats.todayRevenueTrend) }}% from yesterday
+                </div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Active Deliveries</div>
                 <div class="stat-value">{{ stats.activeDeliveries }}</div>
-                <div class="stat-trend down">↓ 5% from yesterday</div>
+                <div class="stat-trend">
+                  - <!-- No trend data yet -->
+                </div>
               </div>
               <div class="stat-card">
                 <div class="stat-label">Low Stock Items</div>
                 <div class="stat-value">{{ stats.lowStockItems }}</div>
-                <div class="stat-trend up">↑ 3 items</div>
+                <div class="stat-trend">
+                  - <!-- No trend data yet -->
+                </div>
               </div>
+            </div>
+          </section>
+
+          <!-- Products Section -->
+          <section v-show="activeSection === 'products'">
+            <div class="page-header" style="display:flex; justify-content:space-between;">
+              <div>
+                <h1 class="page-title">Products</h1>
+                <p class="page-subtitle">Manage your product catalog</p>
+              </div>
+              <button class="btn btn-primary" @click="openAddProductModal">
+                + Add Product
+              </button>
             </div>
 
             <div class="table-container">
-              <div class="table-header">
-                <h3 class="table-title">Recent Orders</h3>
-                <button
-                  class="btn btn-primary"
-                  @click="switchSection('orders')"
-                >
-                  View All
-                </button>
-              </div>
               <table>
                 <thead>
                   <tr>
-                    <th>Order ID</th>
-                    <th>Customer</th>
-                    <th>Items</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Delivery Slot</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>#ORD-1234</td>
-                    <td>Nguyen Van A</td>
-                    <td>8 items</td>
-                    <td>$125.50</td>
-                    <td><span class="badge badge-paid">Paid</span></td>
-                    <td>Today, 2-4 PM</td>
-                  </tr>
-                  <tr>
-                    <td>#ORD-1233</td>
-                    <td>Tran Thi B</td>
-                    <td>5 items</td>
-                    <td>$89.00</td>
+                  <tr v-for="product in productStore.products" :key="product.id">
                     <td>
-                      <span class="badge badge-delivered">Delivered</span>
+                      <div style="font-weight:700">{{ product.name }}</div>
+                      <div style="font-size:12px; color:var(--paragraph); opacity:0.7">{{ product.slug }}</div>
                     </td>
-                    <td>Today, 10-12 AM</td>
+                    <td>{{ product.category?.name || 'Uncategorized' }}</td>
+                    <td>
+                      <div style="font-weight:700">${{ product.price }}</div>
+                      <div v-if="product.original_price" style="font-size:12px; text-decoration:line-through; opacity:0.7">
+                        ${{ product.original_price }}
+                      </div>
+                    </td>
+                    <td>{{ product.quantity || 0 }}</td>
+                    <td>
+                      <span :class="['badge', product.in_stock ? 'badge-delivered' : 'badge-pending']">
+                        {{ product.in_stock ? 'In Stock' : 'Out of Stock' }}
+                      </span>
+                    </td>
+                    <td>
+                      <button class="btn" style="margin-right:8px; padding: 4px 8px; font-size:12px" @click="openEditProductModal(product)">Edit</button>
+                      <button class="btn" style="padding: 4px 8px; font-size:12px; border-color: #e74c3c; color: #e74c3c;" @click="deleteProduct(product.id)">Delete</button>
+                    </td>
                   </tr>
-                  <tr>
-                    <td>#ORD-1232</td>
-                    <td>Le Van C</td>
-                    <td>12 items</td>
-                    <td>$210.75</td>
-                    <td><span class="badge badge-pending">Pending</span></td>
-                    <td>Tomorrow, 8-10 AM</td>
+                  <tr v-if="productStore.products.length === 0">
+                    <td colspan="5" style="text-align:center; padding: 20px;">No products found.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </section>
 
-          <!-- Other sections placeholder -->
+          <!-- Placeholder for other sections -->
           <section
-            v-show="activeSection !== 'dashboard'"
+            v-show="activeSection !== 'dashboard' && activeSection !== 'products'"
             class="placeholder-section"
           >
             <div class="page-header">
               <h1 class="page-title">
-                {{
-                  activeSection.charAt(0).toUpperCase() + activeSection.slice(1)
-                }}
+                {{ activeSection.charAt(0).toUpperCase() + activeSection.slice(1) }}
               </h1>
               <p class="page-subtitle">This section is under development</p>
             </div>
             <div class="placeholder-content">
               <p>
-                The {{ activeSection }} management interface will be implemented
-                here.
+                The {{ activeSection }} management interface will be implemented here.
               </p>
             </div>
           </section>
         </main>
+      </div>
+    </div>
+
+    <!-- Simple Product Modal -->
+    <div v-if="showProductModal" class="modal-overlay">
+      <div class="modal">
+        <h2>{{ isEditing ? 'Edit Product' : 'Add Product' }}</h2>
+        <form @submit.prevent="saveProduct">
+          <div class="form-group">
+            <label>Name</label>
+            <input v-model="editingProduct.name" placeholder="e.g. Organic Avocados" required />
+          </div>
+          
+          <div class="form-group">
+            <label>Category</label>
+            <select v-model="editingProduct.category_id" required>
+              <option value="" disabled>Select a Category</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Image URL (or Emoji)</label>
+            <input v-model="editingProduct.image_url" placeholder="https://example.com/image.png or 🥑" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label>Sale Price ($)</label>
+              <input type="number" step="0.01" v-model.number="editingProduct.price" required />
+            </div>
+            <div class="form-group">
+              <label>Original Price ($)</label>
+              <input type="number" step="0.01" v-model.number="editingProduct.original_price" placeholder="Optional" />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label>Weight / Unit</label>
+              <input v-model="editingProduct.weight" placeholder="e.g. 1kg, 500g, 1 bunch" required />
+            </div>
+            <div class="form-group">
+              <label>Slug (Auto-generated)</label>
+              <input v-model="editingProduct.slug" placeholder="url-friendly-name" required />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label>Quantity</label>
+              <input type="number" v-model.number="editingProduct.quantity" required />
+            </div>
+            <div class="form-group">
+              <label>Stock Status</label>
+              <label style="font-weight:normal; display:flex; align-items:center; gap:8px; color: var(--headline); height: 48px;">
+                <input type="checkbox" v-model="editingProduct.in_stock" style="width:auto;" /> Available In Stock
+              </label>
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn" @click="showProductModal = false">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -615,6 +813,79 @@ tbody tr:last-child td {
   margin-top: 30px;
   font-size: 18px;
   color: var(--paragraph);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: white;
+  border: 4px solid var(--stroke);
+  padding: 40px;
+  width: 100%;
+  max-width: 550px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 10px 10px 0 var(--stroke);
+  color: var(--headline);
+}
+
+.modal h2 {
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--headline);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: var(--headline);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 3px solid var(--stroke);
+  background: white;
+  color: var(--headline);
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: var(--button);
+  background: var(--highlight);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 32px;
 }
 
 /* Responsive */

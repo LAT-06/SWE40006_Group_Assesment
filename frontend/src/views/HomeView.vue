@@ -1,93 +1,27 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useCartStore } from "@/stores/cart";
+import { useProductStore } from "@/stores/products";
 
 const router = useRouter();
 const authStore = useAuthStore();
 const cartStore = useCartStore();
+const productStore = useProductStore();
 
 const searchQuery = ref("");
 
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  size: string;
-  icon: string;
-  badge?: string;
-}
+onMounted(() => {
+  productStore.fetchProducts();
+});
 
-const products = ref<Product[]>([
-  {
-    id: 1,
-    name: "Organic Avocados",
-    size: "4 pack",
-    price: 5.99,
-    icon: "🥑",
-    badge: "20% OFF",
-  },
-  {
-    id: 2,
-    name: "Fresh Strawberries",
-    size: "1 lb",
-    price: 4.49,
-    icon: "🍓",
-  },
-  {
-    id: 3,
-    name: "Sourdough Bread",
-    size: "1 loaf",
-    price: 6.99,
-    icon: "🥖",
-    badge: "NEW",
-  },
-  {
-    id: 4,
-    name: "Organic Whole Milk",
-    size: "1 gallon",
-    price: 7.49,
-    icon: "🥛",
-  },
-  {
-    id: 5,
-    name: "Grass-Fed Beef",
-    size: "1 lb",
-    price: 12.99,
-    icon: "🥩",
-    badge: "15% OFF",
-  },
-  {
-    id: 6,
-    name: "Aged Cheddar Cheese",
-    size: "8 oz",
-    price: 8.99,
-    icon: "🧀",
-  },
-  {
-    id: 7,
-    name: "Heirloom Tomatoes",
-    size: "1 lb",
-    price: 5.49,
-    icon: "🍅",
-  },
-  {
-    id: 8,
-    name: "Free-Range Eggs",
-    size: "12 count",
-    price: 6.99,
-    icon: "🥚",
-    badge: "POPULAR",
-  },
-]);
-
-const addToCart = (product: Product) => {
+const addToCart = (product: any) => {
   cartStore.addItem({
     name: product.name,
     price: product.price,
-    size: product.size,
-    icon: product.icon,
+    size: product.weight,
+    icon: product.image_url, // Using image_url as icon/emoji for now
     quantity: 1,
   });
   console.log(`Added ${product.name} to cart`);
@@ -151,16 +85,24 @@ const handleCart = () => {
             <router-link to="/category" class="nav-item active"
               >All Categories</router-link
             >
-            <router-link to="/category" class="nav-item"
+            <router-link to="/category/fresh-produce" class="nav-item"
               >Fresh Produce</router-link
             >
-            <a href="#" class="nav-item">Dairy & Eggs</a>
-            <a href="#" class="nav-item">Meat & Seafood</a>
-            <a href="#" class="nav-item">Bakery</a>
-            <a href="#" class="nav-item">Beverages</a>
-            <a href="#" class="nav-item">Pantry</a>
-            <a href="#" class="nav-item">Frozen</a>
-            <a href="#" class="nav-item">Snacks</a>
+            <router-link to="/category/meat-seafood" class="nav-item"
+              >Meat & Seafood</router-link
+            >
+            <router-link to="/category/dairy-eggs" class="nav-item"
+              >Dairy & Eggs</router-link
+            >
+            <router-link to="/category/bakery" class="nav-item"
+              >Bakery</router-link
+            >
+            <router-link to="/category/pantry-staples" class="nav-item"
+              >Pantry</router-link
+            >
+            <router-link to="/category/snacks" class="nav-item"
+              >Snacks</router-link
+            >
           </div>
         </div>
       </nav>
@@ -209,36 +151,36 @@ const handleCart = () => {
             >
           </div>
           <div class="category-grid">
-            <router-link to="/category" class="category-card">
+            <router-link to="/category/fresh-produce" class="category-card">
               <div class="category-icon">🥬</div>
               <div class="category-name">Fresh Produce</div>
-              <div class="category-count">250+ items</div>
+              <div class="category-count">Items</div>
             </router-link>
-            <a href="#" class="category-card">
+            <router-link to="/category/meat-seafood" class="category-card">
               <div class="category-icon">🥩</div>
               <div class="category-name">Meat & Seafood</div>
-              <div class="category-count">180+ items</div>
-            </a>
-            <a href="#" class="category-card">
+              <div class="category-count">Items</div>
+            </router-link>
+            <router-link to="/category/dairy-eggs" class="category-card">
               <div class="category-icon">🧀</div>
               <div class="category-name">Dairy & Eggs</div>
-              <div class="category-count">120+ items</div>
-            </a>
-            <a href="#" class="category-card">
+              <div class="category-count">Items</div>
+            </router-link>
+            <router-link to="/category/bakery" class="category-card">
               <div class="category-icon">🍞</div>
               <div class="category-name">Bakery</div>
-              <div class="category-count">90+ items</div>
-            </a>
-            <a href="#" class="category-card">
+              <div class="category-count">Items</div>
+            </router-link>
+            <router-link to="/category/pantry-staples" class="category-card">
               <div class="category-icon">🥫</div>
               <div class="category-name">Pantry Staples</div>
-              <div class="category-count">300+ items</div>
-            </a>
-            <a href="#" class="category-card">
+              <div class="category-count">Items</div>
+            </router-link>
+            <router-link to="/category/snacks" class="category-card">
               <div class="category-icon">🍪</div>
               <div class="category-name">Snacks</div>
-              <div class="category-count">200+ items</div>
-            </a>
+              <div class="category-count">Items</div>
+            </router-link>
           </div>
         </div>
       </section>
@@ -248,11 +190,21 @@ const handleCart = () => {
         <div class="container">
           <div class="section-header">
             <h2>Today's Best Deals</h2>
-            <a href="#" class="view-all">View all →</a>
+            <router-link to="/category" class="view-all"
+              >View all →</router-link
+            >
           </div>
-          <div class="product-grid">
+
+          <div
+            v-if="productStore.loading"
+            style="text-align: center; padding: 40px"
+          >
+            Loading products...
+          </div>
+
+          <div v-else class="product-grid">
             <div
-              v-for="product in products"
+              v-for="product in productStore.featuredProducts"
               :key="product.id"
               class="product-card"
               @click="router.push(`/product/${product.id}`)"
@@ -261,10 +213,10 @@ const handleCart = () => {
               <div v-if="product.badge" class="product-badge">
                 {{ product.badge }}
               </div>
-              <div class="product-image">{{ product.icon }}</div>
+              <div class="product-image">{{ product.image_url || "📦" }}</div>
               <div class="product-info">
                 <div class="product-title">{{ product.name }}</div>
-                <div class="product-weight">{{ product.size }}</div>
+                <div class="product-weight">{{ product.weight }}</div>
                 <div class="product-footer">
                   <div class="product-price">${{ product.price }}</div>
                   <button class="add-to-cart" @click.stop="addToCart(product)">
