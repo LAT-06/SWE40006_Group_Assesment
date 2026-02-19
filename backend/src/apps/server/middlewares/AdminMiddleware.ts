@@ -17,7 +17,19 @@ export const AdminMiddleware = async (
       return;
     }
 
-    const client = SupabaseClientFactory.createClient();
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
+    const client = token
+      ? SupabaseClientFactory.createClientWithToken(token)
+      : SupabaseClientFactory.createClient();
+    const adminEmails = (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter(Boolean);
+    const isAdminByMetadata = user.user_metadata?.isAdmin === true;
+    const isAdminByEmail =
+      typeof user.email === "string" &&
+      adminEmails.includes(user.email.toLowerCase());
 
     // Check role in profiles table
     const { data: profile, error } = await client
@@ -26,7 +38,24 @@ export const AdminMiddleware = async (
       .eq("id", user.id)
       .single();
 
-    if (error || !profile || profile.role !== "admin") {
+    const isAdminByProfile = !error && profile?.role === "admin";
+
+    if (!isAdminByProfile && (isAdminByMetadata || isAdminByEmail)) {
+      await client
+        .from("profiles")
+        .upsert(
+          {
+            id: user.id,
+            role: "admin",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" },
+        );
+      next();
+      return;
+    }
+
+    if (!isAdminByProfile) {
       res
         .status(httpStatus.FORBIDDEN)
         .json({ error: "Access denied: Admins only" });

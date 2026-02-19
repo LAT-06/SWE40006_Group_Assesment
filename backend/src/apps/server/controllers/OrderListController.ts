@@ -5,7 +5,11 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class OrderListController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const client = SupabaseClientFactory.createClient();
+      const authHeader = req.headers.authorization;
+      const token = authHeader?.split(" ")[1];
+      const client = token
+        ? SupabaseClientFactory.createClientWithToken(token)
+        : SupabaseClientFactory.createClient();
 
       const { data, error } = await client
         .from("orders")
