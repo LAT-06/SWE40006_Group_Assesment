@@ -18,10 +18,11 @@ onMounted(() => {
 
 const addToCart = (product: any) => {
   cartStore.addItem({
+    productId: product.id,
     name: product.name,
     price: product.price,
     size: product.weight,
-    icon: product.image_url, // Using image_url as icon/emoji for now
+    icon: product.image_url,
     quantity: 1,
   });
   console.log(`Added ${product.name} to cart`);

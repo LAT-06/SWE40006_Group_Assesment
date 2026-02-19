@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 
 export interface CartItem {
   id: number;
+  productId?: string; // Supabase UUID
   name: string;
   size: string;
   price: number;
@@ -11,32 +12,7 @@ export interface CartItem {
 }
 
 export const useCartStore = defineStore("cart", () => {
-  const items = ref<CartItem[]>([
-    {
-      id: 1,
-      name: "Organic Avocado",
-      size: "4 pack",
-      price: 5.99,
-      quantity: 2,
-      icon: "🥑",
-    },
-    {
-      id: 2,
-      name: "Fresh Strawberries",
-      size: "1 lb",
-      price: 4.49,
-      quantity: 1,
-      icon: "🍓",
-    },
-    {
-      id: 3,
-      name: "Organic Whole Milk",
-      size: "1 gallon",
-      price: 7.49,
-      quantity: 1,
-      icon: "🥛",
-    },
-  ]);
+  const items = ref<CartItem[]>([]);
 
   const deliveryFee = ref(3.5);
   const discount = ref(0);

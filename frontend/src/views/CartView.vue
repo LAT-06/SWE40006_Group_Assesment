@@ -239,8 +239,23 @@
 
               <!-- Delivery Slot -->
               <div class="form-section">
-                <h3 class="form-section-title">Select Delivery Slot</h3>
-                <div class="slot-grid">
+                <h3 class="form-section-title">
+                  Select Delivery Slot
+                  <span style="font-size: 12px; font-weight: 400; color: #666"
+                    >(optional)</span
+                  >
+                </h3>
+                <div v-if="slotsLoading" style="padding: 12px; color: #666">
+                  Loading available slots…
+                </div>
+                <div
+                  v-else-if="deliverySlots.length === 0"
+                  style="padding: 12px; color: #999; font-size: 14px"
+                >
+                  No delivery slots available right now. You can select one
+                  later from your profile.
+                </div>
+                <div v-else class="slot-grid">
                   <div
                     v-for="slot in deliverySlots"
                     :key="slot.id"
@@ -253,7 +268,7 @@
                   >
                     <div class="slot-time">{{ slot.time }}</div>
                     <div class="slot-availability">
-                      {{ slot.slots }} slots available
+                      {{ slot.slots }} spots left
                     </div>
                   </div>
                 </div>
@@ -288,9 +303,10 @@
                 <button
                   class="checkout-btn"
                   style="width: auto; display: inline-block; padding: 14px 40px"
+                  :disabled="placingOrder"
                   @click="placeOrder"
                 >
-                  Place Order
+                  {{ placingOrder ? "Placing Order…" : "Place Order" }}
                 </button>
               </div>
             </div>
@@ -385,19 +401,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useCartStore } from "@/stores/cart";
+import { supabase } from "@/lib/supabase";
 
 const router = useRouter();
 const cartStore = useCartStore();
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 const currentStep = ref(1);
 const promoCode = ref("");
 const selectedSlot = ref<string | null>(null);
 const selectedPayment = ref<string | null>(null);
 const showSuccess = ref(false);
-const orderId = ref(0);
+const orderId = ref<string>("");
+const placingOrder = ref(false);
 
 const checkoutForm = ref({
   fullName: "",
@@ -407,12 +427,54 @@ const checkoutForm = ref({
   notes: "",
 });
 
-const deliverySlots = ref([
-  { id: "8-10", time: "8:00 AM - 10:00 AM", slots: 18, available: true },
-  { id: "10-12", time: "10:00 AM - 12:00 PM", slots: 5, available: true },
-  { id: "14-16", time: "2:00 PM - 4:00 PM", slots: 22, available: true },
-  { id: "16-18", time: "4:00 PM - 6:00 PM", slots: 10, available: true },
-]);
+// ─── Real delivery slots from API ──────────────────────────────────
+interface ApiSlot {
+  id: string;
+  slot_date: string;
+  start_time: string;
+  end_time: string;
+  capacity: number;
+  booked: number;
+  status: string;
+  delivery_zones?: { name: string };
+}
+
+const deliverySlots = ref<
+  { id: string; time: string; slots: number; available: boolean }[]
+>([]);
+const slotsLoading = ref(false);
+
+const fetchDeliverySlots = async () => {
+  slotsLoading.value = true;
+  try {
+    const res = await fetch(`${API_URL}/delivery-slots`);
+    if (res.ok) {
+      const data: ApiSlot[] = await res.json();
+      deliverySlots.value = data.map((s) => {
+        const date = new Date(s.slot_date).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+        const zone = s.delivery_zones?.name
+          ? ` · ${s.delivery_zones.name}`
+          : "";
+        return {
+          id: s.id,
+          time: `${date} · ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}${zone}`,
+          slots: s.capacity - s.booked,
+          available: s.status === "open" && s.booked < s.capacity,
+        };
+      });
+    }
+  } catch (e) {
+    console.error("Failed to fetch delivery slots", e);
+  } finally {
+    slotsLoading.value = false;
+  }
+};
+
+onMounted(fetchDeliverySlots);
 
 const paymentMethods = ref([
   {
@@ -459,8 +521,7 @@ function validateAndContinue() {
   // Form validation is handled by HTML5 required attributes
 }
 
-function placeOrder() {
-  // Validate form
+async function placeOrder() {
   if (
     !checkoutForm.value.fullName ||
     !checkoutForm.value.phone ||
@@ -471,32 +532,73 @@ function placeOrder() {
     return;
   }
 
-  if (!selectedSlot.value) {
-    alert("Please select a delivery slot");
-    return;
-  }
-
   if (!selectedPayment.value) {
     alert("Please select a payment method");
     return;
   }
 
-  // Update steps
+  placingOrder.value = true;
   currentStep.value = 3;
 
-  // Generate random order ID
-  orderId.value = Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) {
+      alert("Please log in to place an order.");
+      router.push("/login");
+      return;
+    }
 
-  // Show success overlay
-  showSuccess.value = true;
+    // Map Pinia cart items to API format (only items with a productId)
+    const items = cartStore.items
+      .filter((i) => i.productId)
+      .map((i) => ({ product_id: i.productId, quantity: i.quantity }));
 
-  // Clear cart
-  cartStore.clearCart();
+    if (items.length === 0) {
+      alert(
+        "Your cart has no valid products. Please add items from the store.",
+      );
+      currentStep.value = 2;
+      return;
+    }
+
+    const body: any = {
+      shipping_address: {
+        name: checkoutForm.value.fullName,
+        phone: checkoutForm.value.phone,
+        address: `${checkoutForm.value.address}, ${checkoutForm.value.district}`,
+      },
+      items,
+      notes: checkoutForm.value.notes || undefined,
+    };
+
+    if (selectedSlot.value) body.delivery_slot_id = selectedSlot.value;
+
+    const res = await fetch(`${API_URL}/orders`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to place order");
+
+    orderId.value = data.order_id;
+    cartStore.clearCart();
+    showSuccess.value = true;
+  } catch (e: any) {
+    alert("Error placing order: " + e.message);
+    currentStep.value = 2;
+  } finally {
+    placingOrder.value = false;
+  }
 }
 
 function closeSuccess() {
   showSuccess.value = false;
-  // Redirect to order tracking
   router.push(`/order-tracking/${orderId.value}`);
 }
 

@@ -2,6 +2,13 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { supabase } from "@/lib/supabase";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+async function getToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -32,7 +39,7 @@ export const useProductStore = defineStore("products", () => {
   // Getters
   const featuredProducts = computed(() => {
     // Return products with a badge, or just first 8 if none/few have badges
-    const withBadge = products.value.filter(p => p.badge);
+    const withBadge = products.value.filter((p) => p.badge);
     if (withBadge.length > 0) return withBadge.slice(0, 8);
     return products.value.slice(0, 8);
   });
@@ -44,11 +51,13 @@ export const useProductStore = defineStore("products", () => {
     try {
       const { data, error: err } = await supabase
         .from("products")
-        .select(`
+        .select(
+          `
           *,
           category:categories(name, slug)
-        `)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .order("created_at", { ascending: false });
 
       if (err) throw err;
       products.value = data as Product[];
@@ -64,63 +73,75 @@ export const useProductStore = defineStore("products", () => {
     return products.value.filter((p) => p.category?.slug === categorySlug);
   };
 
-  // Admin Actions
+  // Admin Actions — routed through backend (uses service role, bypasses RLS)
   const addProduct = async (product: Partial<Product>) => {
-    try {
-      // Remove 'category' relation object before sending to DB
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { category, ...productData } = product;
+    const token = await getToken();
+    if (!token) throw new Error("Not authenticated");
 
-      const { data, error: err } = await supabase
-        .from("products")
-        .insert(productData)
-        .select()
-        .single();
+    // Remove relation object before sending
+    const { category, ...productData } = product as any;
 
-      if (err) throw err;
-      products.value.unshift(data as Product);
-      return data;
-    } catch (err: any) {
-      throw err;
+    const res = await fetch(`${API_URL}/products`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(productData),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to create product");
     }
+
+    const data: Product = await res.json();
+    products.value.unshift(data);
+    return data;
   };
 
   const updateProduct = async (id: string, updates: Partial<Product>) => {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { category, ...updateData } = updates;
+    const token = await getToken();
+    if (!token) throw new Error("Not authenticated");
 
-      const { data, error: err } = await supabase
-        .from("products")
-        .update(updateData)
-        .eq("id", id)
-        .select()
-        .single();
+    const { category, ...updateData } = updates as any;
 
-      if (err) throw err;
-      
-      const index = products.value.findIndex((p) => p.id === id);
-      if (index !== -1) {
-        products.value[index] = { ...products.value[index], ...data };
-      }
-      return data;
-    } catch (err: any) {
-      throw err;
+    const res = await fetch(`${API_URL}/products/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(updateData),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to update product");
     }
+
+    const data: Product = await res.json();
+    const index = products.value.findIndex((p) => p.id === id);
+    if (index !== -1)
+      products.value[index] = { ...products.value[index], ...data };
+    return data;
   };
 
   const deleteProduct = async (id: string) => {
-    try {
-      const { error: err } = await supabase
-        .from("products")
-        .delete()
-        .eq("id", id);
+    const token = await getToken();
+    if (!token) throw new Error("Not authenticated");
 
-      if (err) throw err;
-      products.value = products.value.filter((p) => p.id !== id);
-    } catch (err: any) {
-      throw err;
+    const res = await fetch(`${API_URL}/products/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to delete product");
     }
+
+    products.value = products.value.filter((p) => p.id !== id);
   };
 
   return {

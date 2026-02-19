@@ -252,6 +252,7 @@ const clearAllFilters = () => {
 
 const addToCart = (product: any) => {
   cartStore.addItem({
+    productId: product.id,
     name: product.name,
     size: product.weight,
     price: product.price,

@@ -1,0 +1,92 @@
+import type { Request, Response } from "express";
+import httpStatus from "http-status";
+import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/persistence/supabase/SupabaseClientFactory.js";
+
+export class OrderSelectSlotController {
+  async run(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { delivery_slot_id, notes } = req.body;
+      const user = req.user;
+
+      if (!id) {
+        res.status(httpStatus.BAD_REQUEST).json({ error: "Missing order ID" });
+        return;
+      }
+
+      const client = SupabaseClientFactory.createClient();
+
+      // Verify ownership and pending status
+      const { data: order, error: fetchError } = await client
+        .from("orders")
+        .select("id, status, user_id")
+        .eq("id", id)
+        .single();
+
+      if (fetchError || !order) {
+        res.status(httpStatus.NOT_FOUND).json({ error: "Order not found" });
+        return;
+      }
+
+      if (order.user_id !== user.id) {
+        res.status(httpStatus.FORBIDDEN).json({ error: "Access denied" });
+        return;
+      }
+
+      if (order.status !== "pending") {
+        res
+          .status(httpStatus.BAD_REQUEST)
+          .json({ error: `Cannot update order with status: ${order.status}` });
+        return;
+      }
+
+      // Verify the slot exists and is open
+      if (delivery_slot_id) {
+        const { data: slot, error: slotError } = await client
+          .from("delivery_slots")
+          .select("id, status, capacity, booked")
+          .eq("id", delivery_slot_id)
+          .single();
+
+        if (slotError || !slot) {
+          res
+            .status(httpStatus.NOT_FOUND)
+            .json({ error: "Delivery slot not found" });
+          return;
+        }
+
+        if (slot.status !== "open" || slot.booked >= slot.capacity) {
+          res
+            .status(httpStatus.CONFLICT)
+            .json({ error: "This delivery slot is full or closed" });
+          return;
+        }
+      }
+
+      const updates: Record<string, any> = {};
+      if (delivery_slot_id !== undefined)
+        updates.delivery_slot_id = delivery_slot_id;
+      if (notes !== undefined) updates.notes = notes;
+
+      const { data, error } = await client
+        .from("orders")
+        .update(updates)
+        .eq("id", id)
+        .select(
+          "*, delivery_slot:delivery_slots(id, slot_date, start_time, end_time, delivery_zones(name))",
+        )
+        .single();
+
+      if (error) {
+        res
+          .status(httpStatus.INTERNAL_SERVER_ERROR)
+          .json({ error: error.message });
+        return;
+      }
+
+      res.status(httpStatus.OK).json(data);
+    } catch (err: any) {
+      res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: err.message });
+    }
+  }
+}

@@ -1,137 +1,218 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
+import { supabase } from "@/lib/supabase";
+import { useCartStore } from "@/stores/cart";
 
 const router = useRouter();
 const route = useRoute();
+const cartStore = useCartStore();
 
-// Get order ID from route params or use default
-const orderId = ref(route.params.orderId || "1234");
-const lastUpdateMinutes = ref(15);
+const orderId = route.params.orderId as string;
+const loading = ref(true);
+const error = ref<string | null>(null);
 
-// Mock order data - in a real app, this would come from an API
-const order = ref({
-  id: orderId.value,
-  placedDate: "Jan 28, 2026",
-  placedTime: "10:30 AM",
-  currentStatus: "Out for Delivery",
-  currentStatusIcon: "🚚",
-  estimatedArrival: "2:30 PM - 3:00 PM",
-  deliveryAddress: {
-    name: "Nguyen Van A",
-    phone: "+84 123 456 789",
-    address: "123 Nguyen Hue St, District 1, HCMC",
-    deliverySlot: "2:00 PM - 4:00 PM",
-  },
-  payment: {
-    method: "Google Pay",
-    subtotal: 17.98,
-    deliveryFee: 2.0,
-    total: 19.98,
-  },
-  items: [
-    {
-      id: 1,
-      name: "Organic Avocado",
-      details: "4 pack × 2",
-      price: 11.98,
-      icon: "🥑",
-    },
-    {
-      id: 2,
-      name: "Fresh Strawberries",
-      details: "1 lb × 1",
-      price: 4.49,
-      icon: "🍓",
-    },
-    {
-      id: 3,
-      name: "Organic Whole Milk",
-      details: "1 gallon × 1",
-      price: 7.49,
-      icon: "🥛",
-    },
-  ],
-  timeline: [
-    {
-      id: 1,
-      title: "Order Placed",
-      time: "Jan 28, 2026 at 10:30 AM",
-      description: "Your order has been received and confirmed",
-      icon: "✓",
-      status: "completed",
-    },
-    {
-      id: 2,
-      title: "Payment Confirmed",
-      time: "Jan 28, 2026 at 10:32 AM",
-      description: "Payment successfully processed via Google Pay",
-      icon: "✓",
-      status: "completed",
-    },
-    {
-      id: 3,
-      title: "Order Picked",
-      time: "Jan 28, 2026 at 11:45 AM",
-      description: "Items picked from Store A - District 1",
-      icon: "✓",
-      status: "completed",
-    },
-    {
-      id: 4,
-      title: "Order Packed",
-      time: "Jan 28, 2026 at 12:15 PM",
-      description: "Your order has been packed and quality checked",
-      icon: "✓",
-      status: "completed",
-    },
-    {
-      id: 5,
-      title: "Out for Delivery",
-      time: "Jan 28, 2026 at 2:00 PM",
-      description:
-        "Your order is on the way. Driver will arrive between 2:30 PM - 3:00 PM",
-      icon: "🚚",
-      status: "active",
-    },
-    {
-      id: 6,
-      title: "Delivered",
-      time: "Pending",
-      description: "Order will be marked as delivered upon arrival",
-      icon: "📦",
-      status: "pending",
-    },
-  ],
-});
+// ─── Real order data ────────────────────────────────────────────────
+const order = ref<any>(null);
 
-// Simulate live updates
-let updateInterval: number | null = null;
-
-const simulateStatusUpdate = () => {
-  const minutes = Math.floor(Math.random() * 5) + 1;
-  lastUpdateMinutes.value = minutes;
-};
-
-onMounted(() => {
-  // Update every 30 seconds
-  updateInterval = window.setInterval(simulateStatusUpdate, 30000);
-});
-
-onUnmounted(() => {
-  if (updateInterval) {
-    clearInterval(updateInterval);
+const fetchOrder = async () => {
+  loading.value = true;
+  error.value = null;
+  try {
+    const { data, error: err } = await supabase
+      .from("orders")
+      .select(
+        `*, order_items:order_items(quantity, price_at_purchase, product:products(id, name, image_url, price)),
+         delivery_slot:delivery_slots(id, slot_date, start_time, end_time, delivery_zones(name))`,
+      )
+      .eq("id", orderId)
+      .single();
+    if (err) throw err;
+    order.value = data;
+  } catch (e: any) {
+    error.value = "Order not found or you don't have access.";
+    console.error(e);
+  } finally {
+    loading.value = false;
   }
+};
+
+// ─── Computed helpers ───────────────────────────────────────────────
+const statusSteps = [
+  {
+    key: "pending",
+    label: "Order Placed",
+    icon: "✓",
+    description: "Your order has been received and confirmed.",
+  },
+  {
+    key: "processing",
+    label: "Processing",
+    icon: "⚙️",
+    description: "Your order is being prepared and packed.",
+  },
+  {
+    key: "shipped",
+    label: "Out for Delivery",
+    icon: "🚚",
+    description: "Your order is on its way to you.",
+  },
+  {
+    key: "delivered",
+    label: "Delivered",
+    icon: "📦",
+    description: "Order successfully delivered.",
+  },
+];
+
+const cancelledStep = {
+  key: "cancelled",
+  label: "Order Cancelled",
+  icon: "✕",
+  description: "This order was cancelled.",
+};
+
+const statusOrder = ["pending", "processing", "shipped", "delivered"];
+
+const timeline = computed(() => {
+  if (!order.value) return [];
+  const current = order.value.status as string;
+
+  if (current === "cancelled") {
+    return [
+      {
+        ...statusSteps[0],
+        status: "completed",
+        time: formatDate(order.value.created_at),
+      },
+      {
+        ...cancelledStep,
+        status: "active",
+        time: order.value.cancelled_at
+          ? formatDate(order.value.cancelled_at)
+          : "—",
+      },
+    ];
+  }
+
+  const currentIdx = statusOrder.indexOf(current);
+  return statusSteps.map((step, idx) => ({
+    ...step,
+    status:
+      idx < currentIdx
+        ? "completed"
+        : idx === currentIdx
+          ? "active"
+          : "pending",
+    time:
+      idx === 0
+        ? formatDate(order.value.created_at)
+        : idx <= currentIdx
+          ? "✓ Done"
+          : "Pending",
+  }));
 });
 
-const handlePrint = () => {
-  window.print();
+const currentStatusLabel = computed(() => {
+  if (!order.value) return "Loading…";
+  const map: Record<string, string> = {
+    pending: "Order Placed",
+    processing: "Processing",
+    shipped: "Out for Delivery",
+    delivered: "Delivered",
+    cancelled: "Cancelled",
+  };
+  return map[order.value.status] || order.value.status;
+});
+
+const currentStatusIcon = computed(() => {
+  if (!order.value) return "📋";
+  const map: Record<string, string> = {
+    pending: "✓",
+    processing: "⚙️",
+    shipped: "🚚",
+    delivered: "📦",
+    cancelled: "✕",
+  };
+  return map[order.value.status] || "📋";
+});
+
+const deliverySlotLabel = computed(() => {
+  const slot = order.value?.delivery_slot;
+  if (!slot) return "Not selected";
+  const date = new Date(slot.slot_date).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const zone = slot.delivery_zones?.name
+    ? ` · ${slot.delivery_zones.name}`
+    : "";
+  return `${date} · ${slot.start_time?.slice(0, 5)}–${slot.end_time?.slice(0, 5)}${zone}`;
+});
+
+const shippingAddress = computed(() => {
+  const addr = order.value?.shipping_address;
+  if (!addr) return null;
+  if (typeof addr === "string") {
+    try {
+      return JSON.parse(addr);
+    } catch {
+      return { address: addr };
+    }
+  }
+  return addr;
+});
+
+const subtotal = computed(() => {
+  if (!order.value?.order_items) return 0;
+  return order.value.order_items.reduce(
+    (sum: number, item: any) =>
+      sum + (item.price_at_purchase ?? 0) * (item.quantity ?? 1),
+    0,
+  );
+});
+
+const deliveryFee = computed(() => {
+  const total = order.value?.total_amount ?? 0;
+  return Math.max(total - subtotal.value, 0);
+});
+
+// ─── Utilities ──────────────────────────────────────────────────────
+const formatDate = (iso: string) => {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 };
+
+// ─── Actions ────────────────────────────────────────────────────────
+const handlePrint = () => window.print();
 
 const handleReorder = () => {
-  // In a real app, this would add items back to cart
-  router.push("/");
+  if (!order.value?.order_items?.length) {
+    router.push("/");
+    return;
+  }
+  if (!confirm("Add these items to your cart?")) return;
+  order.value.order_items.forEach((item: any) => {
+    cartStore.addItem({
+      productId: item.product?.id,
+      name: item.product?.name || "Product",
+      price: item.price_at_purchase ?? item.product?.price ?? 0,
+      size: "",
+      icon: item.product?.image_url || "🛒",
+      quantity: item.quantity,
+    });
+  });
+  router.push("/cart");
 };
+
+onMounted(fetchOrder);
 </script>
 
 <template>
@@ -141,7 +222,7 @@ const handleReorder = () => {
       <div class="container">
         <div class="header-content">
           <router-link to="/" class="logo">Deployma</router-link>
-          <router-link to="/" class="back-link">← Back to Home</router-link>
+          <router-link to="/profile" class="back-link">← My Orders</router-link>
         </div>
       </div>
     </header>
@@ -149,141 +230,187 @@ const handleReorder = () => {
     <!-- Main Content -->
     <div class="main-content">
       <div class="container">
-        <div class="page-header">
-          <h1 class="page-title">Track Your Order</h1>
-          <p class="order-number">
-            Order <strong>#ORD-{{ order.id }}</strong> | Placed on
-            {{ order.placedDate }} at {{ order.placedTime }}
-          </p>
+        <!-- Loading -->
+        <div
+          v-if="loading"
+          style="padding: 60px; text-align: center; font-size: 18px"
+        >
+          Loading order…
         </div>
 
-        <!-- Status Section -->
-        <div class="status-section">
-          <div class="status-header">
-            <div class="current-status">
-              <div class="status-icon">{{ order.currentStatusIcon }}</div>
-              <div class="status-info">
-                <h3>{{ order.currentStatus }}</h3>
-                <p class="status-time">
-                  Updated {{ lastUpdateMinutes }} minute{{
-                    lastUpdateMinutes > 1 ? "s" : ""
+        <!-- Error -->
+        <div
+          v-else-if="error"
+          style="padding: 60px; text-align: center; color: #e74c3c"
+        >
+          {{ error }}
+          <br /><router-link to="/profile">← Back to My Orders</router-link>
+        </div>
+
+        <!-- Order Content -->
+        <template v-else-if="order">
+          <div class="page-header">
+            <h1 class="page-title">Track Your Order</h1>
+            <p class="order-number">
+              Order <strong>#{{ order.id.slice(0, 8).toUpperCase() }}</strong> |
+              Placed on
+              {{ formatDate(order.created_at) }}
+            </p>
+          </div>
+
+          <!-- Status Section -->
+          <div class="status-section">
+            <div class="status-header">
+              <div class="current-status">
+                <div class="status-icon">{{ currentStatusIcon }}</div>
+                <div class="status-info">
+                  <h3>{{ currentStatusLabel }}</h3>
+                  <p
+                    v-if="order.status === 'cancelled'"
+                    style="color: #e74c3c; font-size: 13px; margin: 0"
+                  >
+                    Cancelled
+                    {{
+                      order.cancelled_at ? formatDate(order.cancelled_at) : ""
+                    }}
+                  </p>
+                  <p v-else class="status-time">Status updated by admin</p>
+                </div>
+              </div>
+              <div class="eta-box">
+                <div class="eta-label">DELIVERY SLOT</div>
+                <div class="eta-time">{{ deliverySlotLabel }}</div>
+              </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="timeline">
+              <div
+                v-for="(item, idx) in timeline"
+                :key="idx"
+                class="timeline-item"
+                :class="item.status"
+              >
+                <div class="timeline-marker">{{ item.icon }}</div>
+                <div class="timeline-content">
+                  <div class="timeline-title">{{ item.label }}</div>
+                  <div class="timeline-time">{{ item.time }}</div>
+                  <div class="timeline-description">{{ item.description }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Details -->
+          <div class="details-grid">
+            <div class="detail-card">
+              <h3 class="detail-title">
+                <span>📍</span>
+                <span>Delivery Address</span>
+              </h3>
+              <template v-if="shippingAddress">
+                <div v-if="shippingAddress.name" class="detail-row">
+                  <span class="detail-label">Name:</span>
+                  <span class="detail-value">{{ shippingAddress.name }}</span>
+                </div>
+                <div v-if="shippingAddress.phone" class="detail-row">
+                  <span class="detail-label">Phone:</span>
+                  <span class="detail-value">{{ shippingAddress.phone }}</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Address:</span>
+                  <span class="detail-value">
+                    {{
+                      shippingAddress.address ||
+                      shippingAddress.street ||
+                      JSON.stringify(shippingAddress)
+                    }}
+                  </span>
+                </div>
+              </template>
+              <div v-else class="detail-row">
+                <span class="detail-value" style="color: #999"
+                  >No address provided</span
+                >
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Delivery Slot:</span>
+                <span class="detail-value">{{ deliverySlotLabel }}</span>
+              </div>
+              <div v-if="order.notes" class="detail-row">
+                <span class="detail-label">Notes:</span>
+                <span class="detail-value">{{ order.notes }}</span>
+              </div>
+            </div>
+
+            <div class="detail-card">
+              <h3 class="detail-title">
+                <span>💳</span>
+                <span>Payment &amp; Summary</span>
+              </h3>
+              <div class="detail-row">
+                <span class="detail-label">Subtotal:</span>
+                <span class="detail-value">${{ subtotal.toFixed(2) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Delivery Fee:</span>
+                <span class="detail-value">${{ deliveryFee.toFixed(2) }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Total Paid:</span>
+                <span class="detail-value total-price"
+                  >${{ (order.total_amount ?? 0).toFixed(2) }}</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Items List -->
+          <div class="items-card">
+            <h3 class="detail-title">
+              <span>📦</span>
+              <span
+                >Order Items ({{ order.order_items?.length ?? 0 }} items)</span
+              >
+            </h3>
+            <div class="items-list">
+              <div
+                v-for="item in order.order_items"
+                :key="item.product?.id"
+                class="item"
+              >
+                <div class="item-icon">
+                  {{ item.product?.image_url || "🛒" }}
+                </div>
+                <div class="item-info">
+                  <div class="item-name">
+                    {{ item.product?.name || "Product" }}
+                  </div>
+                  <div class="item-details">Qty: {{ item.quantity }}</div>
+                </div>
+                <div class="item-price">
+                  ${{
+                    ((item.price_at_purchase ?? 0) * item.quantity).toFixed(2)
                   }}
-                  ago
-                </p>
+                </div>
               </div>
-            </div>
-            <div class="eta-box">
-              <div class="eta-label">ESTIMATED ARRIVAL</div>
-              <div class="eta-time">{{ order.estimatedArrival }}</div>
             </div>
           </div>
 
-          <!-- Timeline -->
-          <div class="timeline">
-            <div
-              v-for="item in order.timeline"
-              :key="item.id"
-              class="timeline-item"
-              :class="item.status"
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button class="btn btn-secondary" @click="handlePrint">
+              📄 Print Receipt
+            </button>
+            <button
+              v-if="order.status !== 'cancelled'"
+              class="btn btn-primary"
+              @click="handleReorder"
             >
-              <div class="timeline-marker">{{ item.icon }}</div>
-              <div class="timeline-content">
-                <div class="timeline-title">{{ item.title }}</div>
-                <div class="timeline-time">{{ item.time }}</div>
-                <div class="timeline-description">{{ item.description }}</div>
-              </div>
-            </div>
+              🛒 Order Again
+            </button>
           </div>
-        </div>
-
-        <!-- Order Details -->
-        <div class="details-grid">
-          <div class="detail-card">
-            <h3 class="detail-title">
-              <span>📍</span>
-              <span>Delivery Address</span>
-            </h3>
-            <div class="detail-row">
-              <span class="detail-label">Name:</span>
-              <span class="detail-value">{{ order.deliveryAddress.name }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Phone:</span>
-              <span class="detail-value">{{
-                order.deliveryAddress.phone
-              }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Address:</span>
-              <span class="detail-value">{{
-                order.deliveryAddress.address
-              }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Delivery Slot:</span>
-              <span class="detail-value">{{
-                order.deliveryAddress.deliverySlot
-              }}</span>
-            </div>
-          </div>
-
-          <div class="detail-card">
-            <h3 class="detail-title">
-              <span>💳</span>
-              <span>Payment & Summary</span>
-            </h3>
-            <div class="detail-row">
-              <span class="detail-label">Payment Method:</span>
-              <span class="detail-value">{{ order.payment.method }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Subtotal:</span>
-              <span class="detail-value"
-                >${{ order.payment.subtotal.toFixed(2) }}</span
-              >
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Delivery Fee:</span>
-              <span class="detail-value"
-                >${{ order.payment.deliveryFee.toFixed(2) }}</span
-              >
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Total Paid:</span>
-              <span class="detail-value total-price"
-                >${{ order.payment.total.toFixed(2) }}</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- Items List -->
-        <div class="items-card">
-          <h3 class="detail-title">
-            <span>📦</span>
-            <span>Order Items ({{ order.items.length }} items)</span>
-          </h3>
-          <div class="items-list">
-            <div v-for="item in order.items" :key="item.id" class="item">
-              <div class="item-icon">{{ item.icon }}</div>
-              <div class="item-info">
-                <div class="item-name">{{ item.name }}</div>
-                <div class="item-details">{{ item.details }}</div>
-              </div>
-              <div class="item-price">${{ item.price.toFixed(2) }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="action-buttons">
-          <button class="btn btn-secondary" @click="handlePrint">
-            📄 Print Receipt
-          </button>
-          <button class="btn btn-primary" @click="handleReorder">
-            🛒 Order Again
-          </button>
-        </div>
+        </template>
       </div>
     </div>
   </div>

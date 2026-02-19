@@ -3,6 +3,8 @@ import { register as registerStatusRoute } from "./routes/status.route.js";
 import { register as registerProductRoute } from "./routes/product.route.js";
 import { register as registerCategoryRoute } from "./routes/category.route.js";
 import { register as registerCartRoute } from "./routes/cart.route.js";
+import { register as registerOrderRoute } from "./routes/order.route.js";
+import { register as registerDeliverySlotRoute } from "./routes/delivery_slot.route.js";
 import { register as registerAdminRoute } from "./routes/admin.route.js";
 import cors from "cors";
 
@@ -39,6 +41,8 @@ export class Server {
     registerProductRoute(router);
     registerCategoryRoute(router);
     registerCartRoute(router);
+    registerOrderRoute(router);
+    registerDeliverySlotRoute(router);
     registerAdminRoute(router);
 
     this.app.use(router);
