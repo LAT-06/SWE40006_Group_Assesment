@@ -30,7 +30,7 @@ export class OrderUpdateController {
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createServiceRoleClient();
       const { data, error } = await client
         .from("orders")
         .update({ status })

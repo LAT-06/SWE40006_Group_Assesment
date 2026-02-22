@@ -14,7 +14,7 @@ export class OrderSelectSlotController {
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createServiceRoleClient();
 
       // Verify ownership and pending status
       const { data: order, error: fetchError } = await client

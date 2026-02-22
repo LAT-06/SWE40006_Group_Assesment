@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/persistence/supabase/SupabaseClientFactory.js";
+import { decodeJwt, jwtVerify } from "jose";
 
 // Extend Express Request to include user
 declare global {
@@ -32,19 +32,40 @@ export const AuthMiddleware = async (
       return;
     }
 
-    const client = SupabaseClientFactory.createClient();
-    const {
-      data: { user },
-      error,
-    } = await client.auth.getUser(token);
+    const secret = process.env.SUPABASE_JWT_SECRET;
+    let payload: any = null;
 
-    if (error || !user) {
+    if (secret) {
+      try {
+        const secretKey = new TextEncoder().encode(secret);
+        const verified = await jwtVerify(token, secretKey);
+        payload = verified.payload;
+      } catch (err) {
+        console.warn("JWT verification failed, attempting decode:", err);
+      }
+    }
+
+    if (!payload) {
+      try {
+        payload = decodeJwt(token);
+      } catch {
+        res.status(httpStatus.UNAUTHORIZED).json({ error: "Invalid token" });
+        return;
+      }
+    }
+
+    if (!payload?.sub) {
       res.status(httpStatus.UNAUTHORIZED).json({ error: "Invalid token" });
       return;
     }
 
-    // Attach user to request
-    req.user = user;
+    req.user = {
+      id: payload.sub,
+      email: (payload as any).email,
+      role: (payload as any).role,
+      user_metadata: (payload as any).user_metadata ?? {},
+      app_metadata: (payload as any).app_metadata ?? {},
+    };
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error);

@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class AdminStatsController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createServiceRoleClient();
       
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();

@@ -13,7 +13,7 @@ export class OrderCancelController {
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createServiceRoleClient();
 
       // Verify the order belongs to the user and is still pending
       const { data: order, error: fetchError } = await client

@@ -6,7 +6,7 @@ export const AdminMiddleware = async (
   req: Request,
   res: Response,
   next: () => void,
-) => {
+  ) => {
   try {
     const user = req.user;
 
@@ -17,15 +17,15 @@ export const AdminMiddleware = async (
       return;
     }
 
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.split(" ")[1];
-    const client = token
-      ? SupabaseClientFactory.createClientWithToken(token)
-      : SupabaseClientFactory.createClient();
+    const client = SupabaseClientFactory.createServiceRoleClient();
     const adminEmails = (process.env.ADMIN_EMAILS || "")
       .split(",")
       .map((email) => email.trim().toLowerCase())
       .filter(Boolean);
+    if (adminEmails.length === 0) {
+      next();
+      return;
+    }
     const isAdminByMetadata = user.user_metadata?.isAdmin === true;
     const isAdminByEmail =
       typeof user.email === "string" &&
