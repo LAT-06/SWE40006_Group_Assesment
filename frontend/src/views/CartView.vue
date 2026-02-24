@@ -164,6 +164,22 @@
               <!-- Delivery Address -->
               <div class="form-section">
                 <h3 class="form-section-title">Delivery Address</h3>
+
+                <!-- Saved address quick-fill -->
+                <div v-if="savedAddresses.length > 0" style="margin-bottom: 16px;">
+                  <p style="font-size:13px; color:#666; margin-bottom:8px;">Use a saved address:</p>
+                  <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    <button
+                      v-for="addr in savedAddresses"
+                      :key="addr.id"
+                      type="button"
+                      style="padding:8px 14px; border:2px solid #001858; background:#fef6e4; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:#001858;"
+                      @click="fillFromAddress(addr)"
+                    >
+                      {{ addr.label }}{{ addr.is_default ? ' ★' : '' }}
+                    </button>
+                  </div>
+                </div>
                 <form @submit.prevent="validateAndContinue">
                   <div class="form-group">
                     <label class="form-label">Full Name *</label>
@@ -405,9 +421,11 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useCartStore } from "@/stores/cart";
 import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const cartStore = useCartStore();
+const authStore = useAuthStore();
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
@@ -427,7 +445,28 @@ const checkoutForm = ref({
   notes: "",
 });
 
-// ─── Real delivery slots from API ──────────────────────────────────
+// ─── Saved Addresses ───────────────────────────────────────────────
+interface SavedAddress { id: string; label: string; full_name: string; phone: string; address: string; district: string; is_default: boolean; }
+const savedAddresses = ref<SavedAddress[]>([]);
+
+const fetchSavedAddresses = async () => {
+  const userId = authStore.user?.id;
+  if (!userId) return;
+  const { data } = await supabase
+    .from("user_addresses")
+    .select("*")
+    .eq("user_id", userId)
+    .order("is_default", { ascending: false });
+  if (data) savedAddresses.value = data;
+};
+
+const fillFromAddress = (addr: SavedAddress) => {
+  checkoutForm.value.fullName = addr.full_name;
+  checkoutForm.value.phone = addr.phone;
+  checkoutForm.value.address = addr.address;
+  checkoutForm.value.district = districtToZone[addr.district] || addr.district;
+  updateDeliveryZone();
+};
 interface ApiSlot {
   id: string;
   slot_date: string;
@@ -474,7 +513,10 @@ const fetchDeliverySlots = async () => {
   }
 };
 
-onMounted(fetchDeliverySlots);
+onMounted(async () => {
+  await fetchDeliverySlots();
+  await fetchSavedAddresses();
+});
 
 const paymentMethods = ref([
   {
@@ -496,6 +538,12 @@ const paymentMethods = ref([
     description: "Pay when you receive",
   },
 ]);
+
+const districtToZone: Record<string, string> = {
+  "District 1": "zone-a", "District 3": "zone-a", "District 5": "zone-a",
+  "District 2": "zone-b", "District 7": "zone-b", "District 9": "zone-b",
+  "District 12": "zone-c", "Thu Duc": "zone-c",
+};
 
 function applyPromo() {
   if (cartStore.applyPromoCode(promoCode.value)) {

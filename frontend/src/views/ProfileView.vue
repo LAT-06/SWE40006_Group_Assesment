@@ -166,6 +166,7 @@ const fetchOrders = async () => {
 onMounted(async () => {
   await fetchOrders();
   await fetchAvailableSlots();
+  await fetchAddresses();
 });
 
 const switchSection = (sectionId: string) => {
@@ -189,8 +190,81 @@ const reorder = (order: any) => {
   }
 };
 
-const addNewAddress = () => {
-  window.alert("Add new address form would open here");
+// ─── Saved Addresses ────────────────────────────────────────────────
+interface UserAddress {
+  id: string;
+  label: string;
+  full_name: string;
+  phone: string;
+  address: string;
+  district: string;
+  is_default: boolean;
+}
+const userAddresses = ref<UserAddress[]>([]);
+const showAddressModal = ref(false);
+const editingAddressId = ref<string | null>(null);
+const addressForm = ref({ label: "Home", full_name: "", phone: "", address: "", district: "" });
+
+const districtOptions = [
+  { value: "zone-a", label: "District 1" },
+  { value: "zone-a", label: "District 3" },
+  { value: "zone-a", label: "District 5" },
+  { value: "zone-b", label: "District 2" },
+  { value: "zone-b", label: "District 7" },
+  { value: "zone-b", label: "District 9" },
+  { value: "zone-c", label: "District 12" },
+  { value: "zone-c", label: "Thu Duc" },
+];
+
+const fetchAddresses = async () => {
+  const userId = authStore.user?.id;
+  if (!userId) return;
+  const { data } = await supabase
+    .from("user_addresses")
+    .select("*")
+    .eq("user_id", userId)
+    .order("is_default", { ascending: false });
+  if (data) userAddresses.value = data;
+};
+
+const openAddAddress = () => {
+  editingAddressId.value = null;
+  addressForm.value = { label: "Home", full_name: "", phone: "", address: "", district: "" };
+  showAddressModal.value = true;
+};
+
+const openEditAddress = (addr: UserAddress) => {
+  editingAddressId.value = addr.id;
+  addressForm.value = { label: addr.label, full_name: addr.full_name, phone: addr.phone, address: addr.address, district: addr.district };
+  showAddressModal.value = true;
+};
+
+const saveAddress = async () => {
+  const userId = authStore.user?.id;
+  if (!userId) return;
+  const payload = { ...addressForm.value, user_id: userId };
+  if (editingAddressId.value) {
+    await supabase.from("user_addresses").update(payload).eq("id", editingAddressId.value);
+  } else {
+    const isFirst = userAddresses.value.length === 0;
+    await supabase.from("user_addresses").insert({ ...payload, is_default: isFirst });
+  }
+  showAddressModal.value = false;
+  await fetchAddresses();
+};
+
+const deleteAddress = async (id: string) => {
+  if (!confirm("Delete this address?")) return;
+  await supabase.from("user_addresses").delete().eq("id", id);
+  await fetchAddresses();
+};
+
+const setDefaultAddress = async (id: string) => {
+  const userId = authStore.user?.id;
+  if (!userId) return;
+  await supabase.from("user_addresses").update({ is_default: false }).eq("user_id", userId);
+  await supabase.from("user_addresses").update({ is_default: true }).eq("id", id);
+  await fetchAddresses();
 };
 
 const logout = () => {
@@ -554,39 +628,65 @@ const logout = () => {
               </div>
 
               <div class="addresses-grid">
-                <div class="address-card default">
-                  <div class="default-badge">DEFAULT</div>
-                  <div class="address-name">Home</div>
+                <div
+                  v-for="addr in userAddresses"
+                  :key="addr.id"
+                  class="address-card"
+                  :class="{ default: addr.is_default }"
+                >
+                  <div v-if="addr.is_default" class="default-badge">DEFAULT</div>
+                  <div class="address-name">{{ addr.label }}</div>
                   <div class="address-details">
-                    Nguyen Van A<br />
-                    +84 123 456 789<br />
-                    123 Nguyen Hue Street<br />
-                    District 1, Ho Chi Minh City
+                    {{ addr.full_name }}<br />
+                    {{ addr.phone }}<br />
+                    {{ addr.address }}<br />
+                    {{ addr.district }}, Ho Chi Minh City
                   </div>
                   <div class="address-actions">
-                    <button class="btn btn-secondary">Edit</button>
-                    <button class="btn btn-secondary">Delete</button>
+                    <button v-if="!addr.is_default" class="btn btn-secondary" @click="setDefaultAddress(addr.id)">Set Default</button>
+                    <button class="btn btn-secondary" @click="openEditAddress(addr)">Edit</button>
+                    <button class="btn btn-secondary" @click="deleteAddress(addr.id)">Delete</button>
                   </div>
                 </div>
 
-                <div class="address-card">
-                  <div class="address-name">Office</div>
-                  <div class="address-details">
-                    Nguyen Van A<br />
-                    +84 123 456 789<br />
-                    456 Le Van Sy Street<br />
-                    District 3, Ho Chi Minh City
-                  </div>
-                  <div class="address-actions">
-                    <button class="btn btn-secondary">Set Default</button>
-                    <button class="btn btn-secondary">Edit</button>
-                  </div>
-                </div>
-
-                <div class="add-address-card" @click="addNewAddress">
+                <div class="add-address-card" @click="openAddAddress">
                   <div class="add-icon">➕</div>
                   <div style="font-weight: 700; color: var(--headline)">
                     Add New Address
+                  </div>
+                </div>
+              </div>
+
+              <!-- Address Modal -->
+              <div v-if="showAddressModal" class="modal-overlay" @click.self="showAddressModal = false">
+                <div class="modal-box">
+                  <h3 style="margin-bottom: 16px; color: #001858;">{{ editingAddressId ? 'Edit Address' : 'Add New Address' }}</h3>
+                  <div class="form-group">
+                    <label class="form-label">Label</label>
+                    <input v-model="addressForm.label" type="text" class="form-input" placeholder="e.g. Home, Office" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Full Name *</label>
+                    <input v-model="addressForm.full_name" type="text" class="form-input" placeholder="Recipient name" required />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Phone *</label>
+                    <input v-model="addressForm.phone" type="tel" class="form-input" placeholder="+84 123 456 789" required />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Street Address *</label>
+                    <input v-model="addressForm.address" type="text" class="form-input" placeholder="House number and street name" required />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">District *</label>
+                    <select v-model="addressForm.district" class="form-input" required>
+                      <option value="">Select district</option>
+                      <option v-for="opt in districtOptions" :key="opt.label" :value="opt.label">{{ opt.label }}</option>
+                    </select>
+                  </div>
+                  <div style="display:flex; gap:12px; margin-top:20px;">
+                    <button class="btn btn-secondary" @click="showAddressModal = false">Cancel</button>
+                    <button class="checkout-btn" style="flex:1; padding:12px;" @click="saveAddress">Save Address</button>
                   </div>
                 </div>
               </div>
@@ -1167,6 +1267,27 @@ header {
 .add-icon {
   font-size: 48px;
   margin-bottom: 12px;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-box {
+  background: #fff;
+  border: 3px solid #001858;
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* Empty State */
