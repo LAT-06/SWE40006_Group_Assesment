@@ -906,7 +906,7 @@ onMounted(() => fetchStats());
                         {{
                           order.user?.full_name ||
                           order.user?.email ||
-                          "Customer"
+                          (order.user_id ? order.user_id.slice(0, 8).toUpperCase() : "Customer")
                         }}
                       </td>
                       <td style="font-size: 13px">

@@ -12,7 +12,6 @@ export class OrderListController {
         .select(
           `
           *,
-          user:profiles(id, full_name, email),
           order_items(
             id,
             quantity,
