@@ -1,17 +1,16 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import type { Database } from './SupabaseTypes.js';
 
 // Load environment variables if not already loaded
 dotenv.config();
 
 export class SupabaseClientFactory {
-  private static client: SupabaseClient | null = null;
-  private static serviceClient: SupabaseClient | null = null;
+  private static client: SupabaseClient<Database> | null = null;
+  private static serviceClient: SupabaseClient<Database> | null = null;
 
-  static createClient(): SupabaseClient {
-    if (this.client) {
-      return this.client;
-    }
+  static createClient(): SupabaseClient<Database> {
+    if (this.client) return this.client;
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -25,19 +24,14 @@ export class SupabaseClientFactory {
     }
 
     this.client = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+      auth: { autoRefreshToken: false, persistSession: false }
     });
 
     return this.client;
   }
 
-  static createServiceRoleClient(): SupabaseClient {
-    if (this.serviceClient) {
-      return this.serviceClient;
-    }
+  static createServiceRoleClient(): SupabaseClient<Database> {
+    if (this.serviceClient) return this.serviceClient;
 
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -51,16 +45,13 @@ export class SupabaseClientFactory {
     }
 
     this.serviceClient = createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
+      auth: { autoRefreshToken: false, persistSession: false }
     });
 
     return this.serviceClient;
   }
 
-  static createClientWithToken(token: string): SupabaseClient {
+  static createClientWithToken(token: string): SupabaseClient<Database> {
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -70,14 +61,8 @@ export class SupabaseClientFactory {
     }
 
     return createClient(supabaseUrl, supabaseKey, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      },
-      auth: {
-        persistSession: false
-      }
+      global: { headers: { Authorization: `Bearer ${token}` } },
+      auth: { persistSession: false }
     });
   }
 }
