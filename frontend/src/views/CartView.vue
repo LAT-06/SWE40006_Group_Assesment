@@ -545,11 +545,24 @@ const districtToZone: Record<string, string> = {
   "District 12": "zone-c", "Thu Duc": "zone-c",
 };
 
-function applyPromo() {
-  if (cartStore.applyPromoCode(promoCode.value)) {
-    alert("Promo code applied! 10% discount");
-  } else {
-    alert('Invalid promo code. Try "FRESH10"');
+async function applyPromo() {
+  const code = promoCode.value.trim();
+  if (!code) return;
+  try {
+    const res = await fetch(`${API_URL}/promo/validate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, order_total: cartStore.subtotal }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.error || "Invalid promo code");
+      return;
+    }
+    cartStore.applyPromoCode(code, data.discount_amount);
+    alert(`Promo applied! You save $${data.discount_amount.toFixed(2)}`);
+  } catch {
+    alert("Failed to validate promo code. Try again.");
   }
 }
 

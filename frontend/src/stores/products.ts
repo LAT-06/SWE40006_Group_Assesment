@@ -16,6 +16,8 @@ export interface Product {
   price: number;
   original_price?: number;
   description?: string;
+  nutrition?: { label: string; value: string }[];
+  storage?: string;
   category_id?: string;
   category?: {
     name: string;
@@ -23,7 +25,7 @@ export interface Product {
   };
   brand?: string;
   weight?: string;
-  image_url?: string; // This will map to 'icon' or 'image' in UI
+  image_url?: string;
   badge?: string;
   in_stock: boolean;
   quantity?: number;
@@ -45,22 +47,25 @@ export const useProductStore = defineStore("products", () => {
   });
 
   // Actions
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1, limit = 50) => {
     loading.value = true;
     error.value = null;
     try {
-      const { data, error: err } = await supabase
+      const { data: res, error: err } = await supabase
         .from("products")
         .select(
-          `
-          *,
-          category:categories(name, slug)
-        `,
+          `*, category:categories(name, slug)`,
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range((page - 1) * limit, page * limit - 1);
 
       if (err) throw err;
-      products.value = data as Product[];
+      if (page === 1) {
+        products.value = res as Product[];
+      } else {
+        products.value = [...products.value, ...(res as Product[])];
+      }
     } catch (err: any) {
       console.error("Error fetching products:", err);
       error.value = err.message;

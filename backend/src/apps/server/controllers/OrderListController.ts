@@ -7,29 +7,23 @@ export class OrderListController {
     try {
       const client = SupabaseClientFactory.createServiceRoleClient();
 
-      const { data, error } = await client
+      const limit = Math.min(Number(req.query.limit) || 25, 100);
+      const page = Math.max(Number(req.query.page) || 1, 1);
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      const { data, error, count } = await client
         .from("orders")
-        .select(
-          `
-          *,
-          order_items(
-            id,
-            quantity,
-            price_at_purchase,
-            product:products(id, name, image_url)
-          )
-        `,
-        )
-        .order("created_at", { ascending: false });
+        .select("id, user_id, status, total_amount, shipping_address, created_at, notes", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) {
-        res
-          .status(httpStatus.INTERNAL_SERVER_ERROR)
-          .json({ error: error.message });
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
         return;
       }
 
-      res.status(httpStatus.OK).json(data);
+      res.status(httpStatus.OK).json({ data, total: count ?? 0, page, limit });
     } catch (err: any) {
       console.error("OrderListController Error:", err);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: err.message });

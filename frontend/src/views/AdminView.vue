@@ -125,47 +125,89 @@ interface Order {
     price_at_purchase: number;
     product?: { name: string; image_url?: string };
   }[];
+  user_id?: string;
 }
 const orders = ref<Order[]>([]);
 const ordersLoading = ref(false);
+const ordersError = ref("");
 const activeOrderTab = ref("all");
 const selectedOrder = ref<Order | null>(null);
+const orderDetailLoading = ref(false);
+const ordersTotal = ref(0);
+const ordersPage = ref(1);
+const ordersLimit = 25;
 
 const filteredOrders = computed(() => {
   if (activeOrderTab.value === "all") return orders.value;
   return orders.value.filter((o) => o.status === activeOrderTab.value);
 });
 
-const fetchOrders = async () => {
+const totalPages = computed(() => Math.ceil(ordersTotal.value / ordersLimit));
+
+const fetchOrders = async (page = 1) => {
   ordersLoading.value = true;
+  ordersError.value = "";
   try {
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) orders.value = await res.json();
-  } catch (e) {
+    const from = (page - 1) * ordersLimit;
+    const to = from + ordersLimit - 1;
+
+    const { data, error, count } = await supabase
+      .from("orders")
+      .select(
+        `id, user_id, status, total_amount, shipping_address, created_at, notes,
+         user:profiles!orders_user_id_profile_fkey(full_name)`,
+        { count: "exact" },
+      )
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+    orders.value = (data as any[]) ?? [];
+    ordersTotal.value = count ?? 0;
+    ordersPage.value = page;
+  } catch (e: any) {
+    ordersError.value = e.message || "Failed to load orders";
     console.error("Failed to fetch orders", e);
   } finally {
     ordersLoading.value = false;
   }
 };
 
+const openOrderDetail = async (order: Order) => {
+  selectedOrder.value = order;
+  if (!order.order_items) {
+    orderDetailLoading.value = true;
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(
+          `*, order_items(quantity, price_at_purchase, product:products(name, image_url))`,
+        )
+        .eq("id", order.id)
+        .single();
+
+      if (error) throw error;
+      selectedOrder.value = { ...order, ...(data as any) };
+      const idx = orders.value.findIndex((o) => o.id === order.id);
+      if (idx !== -1) orders.value[idx] = selectedOrder.value!;
+    } catch (e) {
+      console.error("Failed to load order detail", e);
+    } finally {
+      orderDetailLoading.value = false;
+    }
+  }
+};
+
 const updateOrderStatus = async (orderId: string, status: string) => {
   try {
-    const token = await getToken();
-    const res = await fetch(`${API_URL}/orders/${orderId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ status }),
-    });
-    if (!res.ok) throw new Error("Failed");
-    const updated = await res.json();
+    const { error } = await supabase
+      .from("orders")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", orderId);
+
+    if (error) throw error;
     const idx = orders.value.findIndex((o) => o.id === orderId);
-    if (idx !== -1) orders.value[idx] = { ...orders.value[idx], ...updated };
+    if (idx !== -1) orders.value[idx] = { ...orders.value[idx], status };
     if (selectedOrder.value?.id === orderId)
       selectedOrder.value = { ...selectedOrder.value, status };
   } catch (e: any) {
@@ -388,6 +430,9 @@ const openAddProductModal = () => {
     slug: "",
     weight: "",
     category_id: "",
+    description: "",
+    nutrition: [],
+    storage: "",
   };
   isEditing.value = false;
   showProductModal.value = true;
@@ -429,6 +474,15 @@ const saveProduct = async () => {
   } catch (e: any) {
     alert("Error saving product: " + e.message);
   }
+};
+
+const addNutritionRow = () => {
+  if (!editingProduct.value.nutrition) editingProduct.value.nutrition = [];
+  editingProduct.value.nutrition.push({ label: "", value: "" });
+};
+
+const removeNutritionRow = (idx: number) => {
+  editingProduct.value.nutrition?.splice(idx, 1);
 };
 
 const deleteProduct = async (id: string) => {
@@ -874,6 +928,10 @@ onMounted(() => fetchStats());
               >
                 Loading orders...
               </div>
+              <div v-else-if="ordersError" style="text-align:center; padding:24px; color:#e74c3c; font-weight:600;">
+                ⚠ {{ ordersError }}
+                <button class="btn" style="margin-left:12px;" @click="fetchOrders()">Retry</button>
+              </div>
               <div v-else class="table-container">
                 <table>
                   <thead>
@@ -891,7 +949,7 @@ onMounted(() => fetchStats());
                       v-for="order in filteredOrders"
                       :key="order.id"
                       style="cursor: pointer"
-                      @click="selectedOrder = order"
+                      @click="openOrderDetail(order)"
                     >
                       <td
                         style="
@@ -955,6 +1013,12 @@ onMounted(() => fetchStats());
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination -->
+              <div v-if="totalPages > 1" style="display:flex; align-items:center; gap:12px; margin-top:16px; justify-content:center;">
+                <button class="btn" :disabled="ordersPage === 1" @click="fetchOrders(ordersPage - 1)">← Prev</button>
+                <span style="font-size:14px; color:#555;">Page {{ ordersPage }} of {{ totalPages }} ({{ ordersTotal }} orders)</span>
+                <button class="btn" :disabled="ordersPage >= totalPages" @click="fetchOrders(ordersPage + 1)">Next →</button>
               </div>
             </div>
 
@@ -1050,7 +1114,8 @@ onMounted(() => fetchStats());
                 </div>
               </div>
               <div class="table-container">
-                <table>
+                <div v-if="orderDetailLoading" style="text-align:center; padding:24px; color:#666;">Loading items…</div>
+                <table v-else>
                   <thead>
                     <tr>
                       <th>Product</th>
@@ -1554,6 +1619,42 @@ onMounted(() => fetchStats());
                 Available In Stock
               </label>
             </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group" style="margin-top:16px;">
+            <label>Description</label>
+            <textarea
+              v-model="editingProduct.description"
+              rows="3"
+              placeholder="Product description shown to customers"
+              style="width:100%; padding:8px; border:2px solid var(--stroke); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"
+            ></textarea>
+          </div>
+
+          <!-- Nutrition -->
+          <div class="form-group" style="margin-top:16px;">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+              Nutrition Info
+              <button type="button" class="btn" style="padding:4px 10px; font-size:12px;" @click="addNutritionRow">+ Add Row</button>
+            </label>
+            <div v-for="(row, idx) in editingProduct.nutrition" :key="idx" style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-top:6px; align-items:center;">
+              <input v-model="row.label" placeholder="e.g. Calories" style="padding:6px 8px; border:2px solid var(--stroke); border-radius:6px; font-size:13px;" />
+              <input v-model="row.value" placeholder="e.g. 240 kcal" style="padding:6px 8px; border:2px solid var(--stroke); border-radius:6px; font-size:13px;" />
+              <button type="button" @click="removeNutritionRow(idx)" style="background:none; border:none; color:#e74c3c; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+            </div>
+            <p v-if="!editingProduct.nutrition?.length" style="font-size:13px; color:#999; margin-top:6px;">No nutrition rows yet. Click "+ Add Row" to start.</p>
+          </div>
+
+          <!-- Storage -->
+          <div class="form-group" style="margin-top:16px;">
+            <label>Storage Instructions</label>
+            <textarea
+              v-model="editingProduct.storage"
+              rows="3"
+              placeholder="e.g. Keep refrigerated at 2-4°C. Best before 5 days."
+              style="width:100%; padding:8px; border:2px solid var(--stroke); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"
+            ></textarea>
           </div>
 
           <div class="modal-actions">

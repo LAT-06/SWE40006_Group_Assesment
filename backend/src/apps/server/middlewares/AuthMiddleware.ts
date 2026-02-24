@@ -40,12 +40,16 @@ export const AuthMiddleware = async (
         const secretKey = new TextEncoder().encode(secret);
         const verified = await jwtVerify(token, secretKey);
         payload = verified.payload;
-      } catch (err) {
-        console.warn("JWT verification failed, attempting decode:", err);
+      } catch {
+        res.status(httpStatus.UNAUTHORIZED).json({ error: "Invalid token" });
+        return;
       }
-    }
-
-    if (!payload) {
+    } else {
+      // No secret configured — decode without verification (dev only)
+      if (process.env.NODE_ENV === "production") {
+        res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: "Server misconfiguration: SUPABASE_JWT_SECRET not set" });
+        return;
+      }
       try {
         payload = decodeJwt(token);
       } catch {

@@ -40,25 +40,18 @@ export class OrderSelectSlotController {
         return;
       }
 
-      // Verify the slot exists and is open
+      // Verify the slot exists and is open — atomically claim it
       if (delivery_slot_id) {
-        const { data: slot, error: slotError } = await client
-          .from("delivery_slots")
-          .select("id, status, capacity, booked")
-          .eq("id", delivery_slot_id)
-          .single();
+        const { data: claimed, error: claimError } = await client
+          .rpc("claim_delivery_slot", { p_slot_id: delivery_slot_id });
 
-        if (slotError || !slot) {
-          res
-            .status(httpStatus.NOT_FOUND)
-            .json({ error: "Delivery slot not found" });
+        if (claimError) {
+          res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: claimError.message });
           return;
         }
 
-        if (slot.status !== "open" || slot.booked >= slot.capacity) {
-          res
-            .status(httpStatus.CONFLICT)
-            .json({ error: "This delivery slot is full or closed" });
+        if (!claimed) {
+          res.status(httpStatus.CONFLICT).json({ error: "This delivery slot is full or closed" });
           return;
         }
       }

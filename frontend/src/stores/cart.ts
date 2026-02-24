@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 
 export interface CartItem {
   id: number;
@@ -11,18 +11,29 @@ export interface CartItem {
   icon: string;
 }
 
-export const useCartStore = defineStore("cart", () => {
-  const items = ref<CartItem[]>([]);
+const STORAGE_KEY = "deployma_cart";
 
+function loadFromStorage(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export const useCartStore = defineStore("cart", () => {
+  const items = ref<CartItem[]>(loadFromStorage());
   const deliveryFee = ref(3.5);
   const discount = ref(0);
 
-  const subtotal = computed(() => {
-    return items.value.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
-  });
+  watch(items, (val) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(val));
+  }, { deep: true });
+
+  const subtotal = computed(() =>
+    items.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  );
 
   const total = computed(() => {
     const fee = subtotal.value >= 50 ? 0 : deliveryFee.value;
@@ -30,16 +41,13 @@ export const useCartStore = defineStore("cart", () => {
   });
 
   const itemCount = computed(() => items.value.length);
-
-  const totalItems = computed(() => {
-    return items.value.reduce((sum, item) => sum + item.quantity, 0);
-  });
+  const totalItems = computed(() =>
+    items.value.reduce((sum, item) => sum + item.quantity, 0)
+  );
 
   function updateQuantity(itemId: number, change: number) {
     const item = items.value.find((i) => i.id === itemId);
-    if (item) {
-      item.quantity = Math.max(1, item.quantity + change);
-    }
+    if (item) item.quantity = Math.max(1, item.quantity + change);
   }
 
   function removeItem(itemId: number) {
@@ -47,17 +55,21 @@ export const useCartStore = defineStore("cart", () => {
   }
 
   function addItem(item: Omit<CartItem, "id">) {
+    const existing = items.value.find(
+      (i) => i.productId && i.productId === item.productId,
+    );
+    if (existing) {
+      existing.quantity += item.quantity ?? 1;
+      return;
+    }
     const newId =
-      items.value.length > 0
-        ? Math.max(...items.value.map((i) => i.id)) + 1
-        : 1;
+      items.value.length > 0 ? Math.max(...items.value.map((i) => i.id)) + 1 : 1;
     items.value.push({ ...item, id: newId });
   }
 
-  function applyPromoCode(code: string): boolean {
-    const normalizedCode = code.trim().toUpperCase();
-    if (normalizedCode === "FRESH10") {
-      discount.value = subtotal.value * 0.1;
+  function applyPromoCode(code: string, discountAmount: number): boolean {
+    if (discountAmount > 0) {
+      discount.value = discountAmount;
       return true;
     }
     return false;
@@ -66,30 +78,16 @@ export const useCartStore = defineStore("cart", () => {
   function clearCart() {
     items.value = [];
     discount.value = 0;
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   function updateDeliveryFee(zone: string) {
-    const fees: Record<string, number> = {
-      "zone-a": 2.0,
-      "zone-b": 3.5,
-      "zone-c": 5.0,
-    };
+    const fees: Record<string, number> = { "zone-a": 2.0, "zone-b": 3.5, "zone-c": 5.0 };
     deliveryFee.value = fees[zone] || 3.5;
   }
 
   return {
-    items,
-    deliveryFee,
-    discount,
-    subtotal,
-    total,
-    itemCount,
-    totalItems,
-    updateQuantity,
-    removeItem,
-    addItem,
-    applyPromoCode,
-    clearCart,
-    updateDeliveryFee,
+    items, deliveryFee, discount, subtotal, total, itemCount, totalItems,
+    updateQuantity, removeItem, addItem, applyPromoCode, clearCart, updateDeliveryFee,
   };
 });

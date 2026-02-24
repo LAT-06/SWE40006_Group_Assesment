@@ -220,25 +220,8 @@ const switchTab = (tabId: string) => {
               :class="{ active: activeTab === 'description' }"
             >
               <h3>About This Product</h3>
-              <p>
-                Our organic avocados are carefully selected from certified
-                organic farms that prioritize sustainable farming practices.
-                Each avocado is hand-picked at the perfect ripeness to ensure
-                you receive the highest quality fruit.
-              </p>
-              <p>
-                Avocados are a nutrient-dense superfood packed with healthy
-                monounsaturated fats, fiber, potassium, and vitamins. They're
-                perfect for a healthy lifestyle and can be used in countless
-                recipes or enjoyed on their own.
-              </p>
-              <p>
-                <strong>Origin:</strong> Locally sourced from organic farms in
-                Vietnam<br />
-                <strong>Variety:</strong> Hass Avocado<br />
-                <strong>Pack Size:</strong> 4 pieces<br />
-                <strong>Certification:</strong> USDA Organic Certified
-              </p>
+              <p v-if="product?.description" style="white-space: pre-line;">{{ product.description }}</p>
+              <p v-else style="color:#999;">No description available.</p>
             </div>
 
             <div
@@ -246,51 +229,17 @@ const switchTab = (tabId: string) => {
               :class="{ active: activeTab === 'nutrition' }"
             >
               <h3>Nutritional Information</h3>
-              <p>Per serving (1 avocado, approximately 150g)</p>
-              <table class="nutrition-table">
-                <tbody>
-                  <tr>
-                    <td>Calories</td>
-                    <td>240 kcal</td>
-                  </tr>
-                  <tr>
-                    <td>Total Fat</td>
-                    <td>22g</td>
-                  </tr>
-                  <tr>
-                    <td>Saturated Fat</td>
-                    <td>3g</td>
-                  </tr>
-                  <tr>
-                    <td>Sodium</td>
-                    <td>10mg</td>
-                  </tr>
-                  <tr>
-                    <td>Total Carbohydrates</td>
-                    <td>12g</td>
-                  </tr>
-                  <tr>
-                    <td>Dietary Fiber</td>
-                    <td>10g</td>
-                  </tr>
-                  <tr>
-                    <td>Protein</td>
-                    <td>3g</td>
-                  </tr>
-                  <tr>
-                    <td>Potassium</td>
-                    <td>690mg</td>
-                  </tr>
-                  <tr>
-                    <td>Vitamin K</td>
-                    <td>26% DV</td>
-                  </tr>
-                  <tr>
-                    <td>Folate</td>
-                    <td>20% DV</td>
-                  </tr>
-                </tbody>
-              </table>
+              <template v-if="product?.nutrition?.length">
+                <table class="nutrition-table">
+                  <tbody>
+                    <tr v-for="row in product.nutrition" :key="row.label">
+                      <td>{{ row.label }}</td>
+                      <td>{{ row.value }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </template>
+              <p v-else style="color:#999;">No nutritional information available.</p>
             </div>
 
             <div
@@ -298,23 +247,8 @@ const switchTab = (tabId: string) => {
               :class="{ active: activeTab === 'storage' }"
             >
               <h3>Storage Instructions</h3>
-              <p>
-                <strong>If Unripe:</strong> Store at room temperature away from
-                direct sunlight until ripe. This typically takes 2-5 days.
-              </p>
-              <p>
-                <strong>If Ripe:</strong> Store in the refrigerator for up to
-                3-5 days to extend freshness.
-              </p>
-              <p>
-                <strong>Ripeness Check:</strong> Gently squeeze the avocado. If
-                it yields slightly to pressure, it's ripe and ready to eat.
-              </p>
-              <p>
-                <strong>After Cutting:</strong> Sprinkle lemon juice on exposed
-                flesh and wrap tightly in plastic wrap. Store in refrigerator
-                for up to 2 days.
-              </p>
+              <p v-if="product?.storage" style="white-space: pre-line;">{{ product.storage }}</p>
+              <p v-else style="color:#999;">No storage instructions available.</p>
             </div>
           </div>
 

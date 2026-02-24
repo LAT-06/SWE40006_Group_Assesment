@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Request, Response } from "express";
 import { OrderCreateController } from "../controllers/OrderCreateController.js";
 import { OrderListController } from "../controllers/OrderListController.js";
+import { OrderGetController } from "../controllers/OrderGetController.js";
 import { OrderUpdateController } from "../controllers/OrderUpdateController.js";
 import { OrderCancelController } from "../controllers/OrderCancelController.js";
 import { OrderSelectSlotController } from "../controllers/OrderSelectSlotController.js";
@@ -11,6 +12,7 @@ import { AdminMiddleware } from "../middlewares/AdminMiddleware.js";
 export const register = (router: Router) => {
   const create = new OrderCreateController();
   const list = new OrderListController();
+  const get = new OrderGetController();
   const update = new OrderUpdateController();
   const cancel = new OrderCancelController();
   const selectSlot = new OrderSelectSlotController();
@@ -34,12 +36,20 @@ export const register = (router: Router) => {
     (req: Request, res: Response) => selectSlot.run(req, res),
   );
 
-  // Admin: list all orders
+  // Admin: list all orders (paginated, lightweight)
   router.get(
     "/orders",
     AuthMiddleware,
     AdminMiddleware,
     (req: Request, res: Response) => list.run(req, res),
+  );
+
+  // Admin: get single order with items
+  router.get(
+    "/orders/:id",
+    AuthMiddleware,
+    AdminMiddleware,
+    (req: Request, res: Response) => get.run(req, res),
   );
 
   // Admin: update order status

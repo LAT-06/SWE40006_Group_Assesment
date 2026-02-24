@@ -15,7 +15,7 @@ export class OrderCreateController {
         return;
       }
 
-      const serviceClient = SupabaseClientFactory.createClient();
+      const serviceClient = SupabaseClientFactory.createServiceRoleClient();
 
       let orderItemsToInsert: any[] = [];
       let totalAmount = 0;
@@ -129,6 +129,14 @@ export class OrderCreateController {
           .status(httpStatus.INTERNAL_SERVER_ERROR)
           .json({ error: orderItemsError.message });
         return;
+      }
+
+      // Deduct stock quantities
+      for (const item of orderItemsToInsert) {
+        await serviceClient.rpc("decrement_product_quantity", {
+          p_product_id: item.product_id,
+          p_amount: item.quantity,
+        });
       }
 
       res

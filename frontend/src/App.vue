@@ -6,18 +6,15 @@ import { useAuthStore } from "@/stores/auth";
 const authStore = useAuthStore();
 const router = useRouter();
 
-// Initialize auth session on app mount
 onMounted(async () => {
-  await authStore.initialize();
-
-  // If user just logged in via OAuth and is admin, redirect to admin dashboard
-  if (
-    authStore.isAuthenticated &&
-    authStore.isAdmin &&
-    router.currentRoute.value.path === "/"
-  ) {
-    router.push("/admin");
+  // If the URL has OAuth tokens in the hash (old redirect URL still pointing to /),
+  // forward to the callback view which handles them properly
+  if (window.location.hash.startsWith("#access_token=")) {
+    await router.replace("/auth/callback" + window.location.hash);
+    return;
   }
+
+  await authStore.initialize();
 });
 </script>
 
