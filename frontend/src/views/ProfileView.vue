@@ -20,7 +20,7 @@ const getToken = async () => {
 const orders = ref<any[]>([]);
 const ordersLoading = ref(false);
 
-// ─── Delivery Slots ─────────────────────────────────────────────────
+// ─── MARK: Delivery Slots ─────────────────────────────────────────────────
 const availableSlots = ref<any[]>([]);
 const slotsLoading = ref(false);
 
@@ -46,7 +46,7 @@ const formatSlot = (slot: any) => {
   return `${date} · ${slot.start_time?.slice(0, 5)} – ${slot.end_time?.slice(0, 5)}${slot.delivery_zones?.name ? " · " + slot.delivery_zones.name : ""}`;
 };
 
-// ─── Cancel Order ────────────────────────────────────────────────────
+// ─── MARK: Cancel Order ────────────────────────────────────────────────────
 const cancelOrder = async (orderId: string) => {
   if (!confirm("Cancel this order? This cannot be undone.")) return;
   try {
@@ -69,7 +69,7 @@ const cancelOrder = async (orderId: string) => {
   }
 };
 
-// ─── Select Delivery Slot ─────────────────────────────────────────────
+// ─── MARK: Select Delivery Slot ─────────────────────────────────────────────
 const slotPickerOrderId = ref<string | null>(null);
 const selectedSlotId = ref<string>("");
 const slotNotes = ref<string>("");
@@ -190,7 +190,7 @@ const reorder = (order: any) => {
   }
 };
 
-// ─── Saved Addresses ────────────────────────────────────────────────
+// ─── MARK: Saved Addresses ────────────────────────────────────────────────
 interface UserAddress {
   id: string;
   label: string;
@@ -303,48 +303,27 @@ const logout = () => {
               </div>
             </div>
             <nav class="nav-menu">
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'profile' }"
-                @click.prevent="switchSection('profile')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'profile' }"
+                @click.prevent="switchSection('profile')">
                 <span class="nav-icon">👤</span>
                 <span>Profile</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'orders' }"
-                @click.prevent="switchSection('orders')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'orders' }"
+                @click.prevent="switchSection('orders')">
                 <span class="nav-icon">📦</span>
                 <span>My Orders</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'addresses' }"
-                @click.prevent="switchSection('addresses')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'addresses' }"
+                @click.prevent="switchSection('addresses')">
                 <span class="nav-icon">📍</span>
                 <span>Saved Addresses</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'settings' }"
-                @click.prevent="switchSection('settings')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'settings' }"
+                @click.prevent="switchSection('settings')">
                 <span class="nav-icon">⚙️</span>
                 <span>Settings</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                style="color: #e74c3c"
-                @click.prevent="logout"
-              >
+              <a href="#" class="nav-item" style="color: #e74c3c" @click.prevent="logout">
                 <span class="nav-icon">🚪</span>
                 <span>Logout</span>
               </a>
@@ -354,11 +333,7 @@ const logout = () => {
           <!-- Main Content -->
           <main>
             <!-- Profile Section -->
-            <section
-              id="profile"
-              class="content-section"
-              :class="{ active: activeSection === 'profile' }"
-            >
+            <section id="profile" class="content-section" :class="{ active: activeSection === 'profile' }">
               <div class="section-header">
                 <h1 class="section-title">My Profile</h1>
                 <p class="section-subtitle">Manage your personal information</p>
@@ -407,11 +382,7 @@ const logout = () => {
             </section>
 
             <!-- Orders Section -->
-            <section
-              id="orders"
-              class="content-section"
-              :class="{ active: activeSection === 'orders' }"
-            >
+            <section id="orders" class="content-section" :class="{ active: activeSection === 'orders' }">
               <div class="section-header">
                 <h1 class="section-title">My Orders</h1>
                 <p class="section-subtitle">
@@ -419,24 +390,13 @@ const logout = () => {
                 </p>
               </div>
 
-              <div
-                v-if="ordersLoading"
-                style="padding: 20px; text-align: center"
-              >
+              <div v-if="ordersLoading" style="padding: 20px; text-align: center">
                 Loading orders...
               </div>
-              <div
-                v-else-if="orders.length === 0"
-                style="padding: 20px; text-align: center; color: #666"
-              >
+              <div v-else-if="orders.length === 0" style="padding: 20px; text-align: center; color: #666">
                 No orders yet.
               </div>
-              <div
-                v-else
-                v-for="order in orders"
-                :key="order.id"
-                class="order-card"
-              >
+              <div v-else v-for="order in orders" :key="order.id" class="order-card">
                 <div class="order-header">
                   <div>
                     <div class="order-id">
@@ -459,11 +419,7 @@ const logout = () => {
                 </div>
                 <div class="order-body">
                   <div class="order-items">
-                    <div
-                      v-for="item in order.order_items"
-                      :key="item.product?.id"
-                      class="order-item"
-                    >
+                    <div v-for="item in order.order_items" :key="item.product?.id" class="order-item">
                       <div class="item-icon">
                         {{ item.product?.image_url || "🛒" }}
                       </div>
@@ -483,14 +439,9 @@ const logout = () => {
                       formatSlot(order.delivery_slot)
                     }}</span>
                   </div>
-                  <div
-                    v-else-if="order.status === 'pending'"
-                    class="delivery-slot-info no-slot"
-                  >
+                  <div v-else-if="order.status === 'pending'" class="delivery-slot-info no-slot">
                     <span class="slot-label">🚚 Delivery Slot:</span>
-                    <span class="slot-value" style="color: #e74c3c"
-                      >Not selected</span
-                    >
+                    <span class="slot-value" style="color: #e74c3c">Not selected</span>
                   </div>
 
                   <!-- Order Notes -->
@@ -504,33 +455,21 @@ const logout = () => {
                       Total: ${{ order.total_amount?.toFixed(2) || "—" }}
                     </div>
                     <div class="order-actions">
-                      <router-link
-                        :to="`/order-tracking/${order.id}`"
-                        class="btn btn-primary"
-                        >Track Order</router-link
-                      >
+                      <router-link :to="`/order-tracking/${order.id}`" class="btn btn-primary">Track Order</router-link>
                       <button class="btn btn-secondary" @click="reorder(order)">
                         🔄 Reorder
                       </button>
                       <!-- Select / Change Delivery Slot (pending only) -->
-                      <button
-                        v-if="order.status === 'pending'"
-                        class="btn btn-secondary"
-                        @click="
-                          openSlotPicker(order.id, order.delivery_slot_id)
-                        "
-                      >
+                      <button v-if="order.status === 'pending'" class="btn btn-secondary" @click="
+                        openSlotPicker(order.id, order.delivery_slot_id)
+                        ">
                         🗓
                         {{
                           order.delivery_slot_id ? "Change Slot" : "Select Slot"
                         }}
                       </button>
                       <!-- Cancel Order (pending only) -->
-                      <button
-                        v-if="order.status === 'pending'"
-                        class="btn btn-cancel"
-                        @click="cancelOrder(order.id)"
-                      >
+                      <button v-if="order.status === 'pending'" class="btn btn-cancel" @click="cancelOrder(order.id)">
                         ✕ Cancel Order
                       </button>
                     </div>
@@ -538,41 +477,26 @@ const logout = () => {
                 </div>
 
                 <!-- Slot Picker Inline Panel -->
-                <div
-                  v-if="slotPickerOrderId === order.id"
-                  class="slot-picker-panel"
-                >
+                <div v-if="slotPickerOrderId === order.id" class="slot-picker-panel">
                   <h3 style="margin: 0 0 12px; font-size: 16px">
                     Select Delivery Slot
                   </h3>
                   <div v-if="slotsLoading">Loading slots...</div>
-                  <div
-                    v-else-if="availableSlots.length === 0"
-                    style="color: #666"
-                  >
+                  <div v-else-if="availableSlots.length === 0" style="color: #666">
                     No available slots at the moment.
                   </div>
                   <div v-else>
                     <div class="form-group">
-                      <label style="font-weight: 700; font-size: 13px"
-                        >Available Slots</label
-                      >
-                      <select
-                        v-model="selectedSlotId"
-                        style="
+                      <label style="font-weight: 700; font-size: 13px">Available Slots</label>
+                      <select v-model="selectedSlotId" style="
                           width: 100%;
                           padding: 8px;
-                          border: 2px solid #001858;
+                          border: 2px solid var(--stroke);
                           border-radius: 6px;
                           margin-top: 6px;
-                        "
-                      >
+                        ">
                         <option value="" disabled>Choose a slot…</option>
-                        <option
-                          v-for="slot in availableSlots"
-                          :key="slot.id"
-                          :value="slot.id"
-                        >
+                        <option v-for="slot in availableSlots" :key="slot.id" :value="slot.id">
                           {{ formatSlot(slot) }} ({{
                             slot.capacity - slot.booked
                           }}
@@ -581,33 +505,21 @@ const logout = () => {
                       </select>
                     </div>
                     <div class="form-group" style="margin-top: 10px">
-                      <label style="font-weight: 700; font-size: 13px"
-                        >Delivery Notes (optional)</label
-                      >
-                      <input
-                        v-model="slotNotes"
-                        placeholder="e.g. Leave at door"
-                        style="
+                      <label style="font-weight: 700; font-size: 13px">Delivery Notes (optional)</label>
+                      <input v-model="slotNotes" placeholder="e.g. Leave at door" style="
                           width: 100%;
                           padding: 8px;
-                          border: 2px solid #001858;
+                          border: 2px solid var(--stroke);
                           border-radius: 6px;
                           margin-top: 6px;
                           box-sizing: border-box;
-                        "
-                      />
+                        " />
                     </div>
                     <div style="display: flex; gap: 10px; margin-top: 14px">
-                      <button
-                        class="btn btn-primary"
-                        @click="confirmSlotSelection"
-                      >
+                      <button class="btn btn-primary" @click="confirmSlotSelection">
                         Confirm
                       </button>
-                      <button
-                        class="btn btn-secondary"
-                        @click="slotPickerOrderId = null"
-                      >
+                      <button class="btn btn-secondary" @click="slotPickerOrderId = null">
                         Cancel
                       </button>
                     </div>
@@ -617,23 +529,15 @@ const logout = () => {
             </section>
 
             <!-- Addresses Section -->
-            <section
-              id="addresses"
-              class="content-section"
-              :class="{ active: activeSection === 'addresses' }"
-            >
+            <section id="addresses" class="content-section" :class="{ active: activeSection === 'addresses' }">
               <div class="section-header">
                 <h1 class="section-title">Saved Addresses</h1>
                 <p class="section-subtitle">Manage your delivery addresses</p>
               </div>
 
               <div class="addresses-grid">
-                <div
-                  v-for="addr in userAddresses"
-                  :key="addr.id"
-                  class="address-card"
-                  :class="{ default: addr.is_default }"
-                >
+                <div v-for="addr in userAddresses" :key="addr.id" class="address-card"
+                  :class="{ default: addr.is_default }">
                   <div v-if="addr.is_default" class="default-badge">DEFAULT</div>
                   <div class="address-name">{{ addr.label }}</div>
                   <div class="address-details">
@@ -643,7 +547,8 @@ const logout = () => {
                     {{ addr.district }}, Ho Chi Minh City
                   </div>
                   <div class="address-actions">
-                    <button v-if="!addr.is_default" class="btn btn-secondary" @click="setDefaultAddress(addr.id)">Set Default</button>
+                    <button v-if="!addr.is_default" class="btn btn-secondary" @click="setDefaultAddress(addr.id)">Set
+                      Default</button>
                     <button class="btn btn-secondary" @click="openEditAddress(addr)">Edit</button>
                     <button class="btn btn-secondary" @click="deleteAddress(addr.id)">Delete</button>
                   </div>
@@ -660,44 +565,45 @@ const logout = () => {
               <!-- Address Modal -->
               <div v-if="showAddressModal" class="modal-overlay" @click.self="showAddressModal = false">
                 <div class="modal-box">
-                  <h3 style="margin-bottom: 16px; color: #001858;">{{ editingAddressId ? 'Edit Address' : 'Add New Address' }}</h3>
+                  <h3 style="margin-bottom: 16px; color: var(--headline);">{{ editingAddressId ? 'Edit Address' : 'Add New Address' }}</h3>
                   <div class="form-group">
                     <label class="form-label">Label</label>
                     <input v-model="addressForm.label" type="text" class="form-input" placeholder="e.g. Home, Office" />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Full Name *</label>
-                    <input v-model="addressForm.full_name" type="text" class="form-input" placeholder="Recipient name" required />
+                    <input v-model="addressForm.full_name" type="text" class="form-input" placeholder="Recipient name"
+                      required />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Phone *</label>
-                    <input v-model="addressForm.phone" type="tel" class="form-input" placeholder="+84 123 456 789" required />
+                    <input v-model="addressForm.phone" type="tel" class="form-input" placeholder="+84 123 456 789"
+                      required />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Street Address *</label>
-                    <input v-model="addressForm.address" type="text" class="form-input" placeholder="House number and street name" required />
+                    <input v-model="addressForm.address" type="text" class="form-input"
+                      placeholder="House number and street name" required />
                   </div>
                   <div class="form-group">
                     <label class="form-label">District *</label>
                     <select v-model="addressForm.district" class="form-input" required>
                       <option value="">Select district</option>
-                      <option v-for="opt in districtOptions" :key="opt.label" :value="opt.label">{{ opt.label }}</option>
+                      <option v-for="opt in districtOptions" :key="opt.label" :value="opt.label">{{ opt.label }}
+                      </option>
                     </select>
                   </div>
                   <div style="display:flex; gap:12px; margin-top:20px;">
                     <button class="btn btn-secondary" @click="showAddressModal = false">Cancel</button>
-                    <button class="checkout-btn" style="flex:1; padding:12px;" @click="saveAddress">Save Address</button>
+                    <button class="checkout-btn" style="flex:1; padding:12px;" @click="saveAddress">Save
+                      Address</button>
                   </div>
                 </div>
               </div>
             </section>
 
             <!-- Settings Section -->
-            <section
-              id="settings"
-              class="content-section"
-              :class="{ active: activeSection === 'settings' }"
-            >
+            <section id="settings" class="content-section" :class="{ active: activeSection === 'settings' }">
               <div class="section-header">
                 <h1 class="section-title">Settings</h1>
                 <p class="section-subtitle">Manage your account preferences</p>
@@ -709,21 +615,15 @@ const logout = () => {
                 </div>
                 <div class="info-row">
                   <span class="info-label">Order Updates:</span>
-                  <span class="info-value" style="color: #27ae60"
-                    >✓ Enabled</span
-                  >
+                  <span class="info-value" style="color: #27ae60">✓ Enabled</span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">Promotions:</span>
-                  <span class="info-value" style="color: #27ae60"
-                    >✓ Enabled</span
-                  >
+                  <span class="info-value" style="color: #27ae60">✓ Enabled</span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">SMS Alerts:</span>
-                  <span class="info-value" style="color: #e74c3c"
-                    >✗ Disabled</span
-                  >
+                  <span class="info-value" style="color: #e74c3c">✗ Disabled</span>
                 </div>
               </div>
 
@@ -738,9 +638,7 @@ const logout = () => {
                 </div>
                 <div class="info-row">
                   <span class="info-label">Two-Factor Auth:</span>
-                  <span class="info-value" style="color: #e74c3c"
-                    >✗ Disabled</span
-                  >
+                  <span class="info-value" style="color: #e74c3c">✗ Disabled</span>
                 </div>
               </div>
 
@@ -750,15 +648,11 @@ const logout = () => {
                 </div>
                 <div class="info-row">
                   <span class="info-label">Share Purchase History:</span>
-                  <span class="info-value" style="color: #e74c3c"
-                    >✗ Disabled</span
-                  >
+                  <span class="info-value" style="color: #e74c3c">✗ Disabled</span>
                 </div>
                 <div class="info-row">
                   <span class="info-label">Personalized Recommendations:</span>
-                  <span class="info-value" style="color: #27ae60"
-                    >✓ Enabled</span
-                  >
+                  <span class="info-value" style="color: #27ae60">✓ Enabled</span>
                 </div>
               </div>
             </section>
@@ -770,67 +664,8 @@ const logout = () => {
 </template>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
-
 .profile-page {
-  font-family: "DM Sans", sans-serif;
-  background: var(--bg);
-  color: var(--paragraph);
-  line-height: 1.6;
   min-height: 100vh;
-  --bg: #fef6e4;
-  --headline: #001858;
-  --paragraph: #172c66;
-  --button: #f582ae;
-  --button-text: #001858;
-  --stroke: #001858;
-  --main: #f3d2c1;
-  --highlight: #fef6e4;
-  --secondary: #8bd3dd;
-  --tertiary: #f582ae;
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* Header */
-header {
-  background: var(--bg);
-  border-bottom: 3px solid var(--stroke);
-  padding: 20px 0;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  font-family: "Space Mono", monospace;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--headline);
-  text-decoration: none;
-}
-
-.back-link {
-  color: var(--headline);
-  text-decoration: none;
-  font-weight: 500;
-  padding: 10px 20px;
-  border: 3px solid var(--stroke);
-  background: white;
-  transition: all 0.2s;
-}
-
-.back-link:hover {
-  background: var(--main);
-  transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 var(--stroke);
 }
 
 /* Main Layout */
@@ -966,7 +801,9 @@ header {
 .edit-btn {
   background: var(--secondary);
   border: 2px solid var(--stroke);
+  color: var(--button-text);
   padding: 8px 16px;
+  font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -1013,7 +850,7 @@ header {
   border: 3px solid var(--stroke);
   font-weight: 600;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   transition: all 0.2s;
 }
 
@@ -1136,7 +973,7 @@ header {
   border: 3px solid var(--stroke);
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   font-size: 14px;
   transition: all 0.2s;
   text-decoration: none;
@@ -1193,7 +1030,7 @@ header {
 .slot-picker-panel {
   border-top: 3px solid var(--stroke);
   padding: 18px;
-  background: #fef6e4;
+  background: var(--bg);
   margin-top: 12px;
 }
 
@@ -1272,7 +1109,7 @@ header {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -1281,7 +1118,7 @@ header {
 
 .modal-box {
   background: #fff;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   border-radius: 12px;
   padding: 32px;
   width: 100%;

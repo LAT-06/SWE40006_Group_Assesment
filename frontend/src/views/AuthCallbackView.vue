@@ -1,17 +1,15 @@
 <template>
-  <div
-    style="
+  <div style="
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fef6e4;
+      background: var(--bg);
       font-family: 'DM Sans', sans-serif;
-    "
-  >
+    ">
     <div style="text-align: center">
       <div style="font-size: 40px; margin-bottom: 16px">🔑</div>
-      <p style="color: #001858; font-weight: 600; font-size: 18px">
+      <p style="color: var(--headline); font-weight: 600; font-size: 18px">
         Signing you in…
       </p>
       <p v-if="error" style="color: #e74c3c; margin-top: 12px">{{ error }}</p>

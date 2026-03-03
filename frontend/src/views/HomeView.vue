@@ -47,19 +47,11 @@ const handleCart = () => {
             <router-link to="/" class="logo">Deployma</router-link>
 
             <div class="search-bar">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search for products, categories..."
-              />
+              <input v-model="searchQuery" type="text" placeholder="Search for products, categories..." />
             </div>
 
             <div class="header-actions">
-              <button
-                v-if="!authStore.isAuthenticated"
-                class="icon-btn"
-                @click="handleSignIn"
-              >
+              <button v-if="!authStore.isAuthenticated" class="icon-btn" @click="handleSignIn">
                 Sign In
               </button>
               <template v-else>
@@ -83,27 +75,13 @@ const handleCart = () => {
       <nav>
         <div class="container">
           <div class="nav-content">
-            <router-link to="/category" class="nav-item active"
-              >All Categories</router-link
-            >
-            <router-link to="/category/fresh-produce" class="nav-item"
-              >Fresh Produce</router-link
-            >
-            <router-link to="/category/meat-seafood" class="nav-item"
-              >Meat & Seafood</router-link
-            >
-            <router-link to="/category/dairy-eggs" class="nav-item"
-              >Dairy & Eggs</router-link
-            >
-            <router-link to="/category/bakery" class="nav-item"
-              >Bakery</router-link
-            >
-            <router-link to="/category/pantry-staples" class="nav-item"
-              >Pantry</router-link
-            >
-            <router-link to="/category/snacks" class="nav-item"
-              >Snacks</router-link
-            >
+            <router-link to="/category" class="nav-item active">All Categories</router-link>
+            <router-link to="/category/fresh-produce" class="nav-item">Fresh Produce</router-link>
+            <router-link to="/category/meat-seafood" class="nav-item">Meat & Seafood</router-link>
+            <router-link to="/category/dairy-eggs" class="nav-item">Dairy & Eggs</router-link>
+            <router-link to="/category/bakery" class="nav-item">Bakery</router-link>
+            <router-link to="/category/pantry-staples" class="nav-item">Pantry</router-link>
+            <router-link to="/category/snacks" class="nav-item">Snacks</router-link>
           </div>
         </div>
       </nav>
@@ -147,9 +125,7 @@ const handleCart = () => {
         <div class="container">
           <div class="section-header">
             <h2>Shop by Category</h2>
-            <router-link to="/category" class="view-all"
-              >View all →</router-link
-            >
+            <router-link to="/category" class="view-all">View all →</router-link>
           </div>
           <div class="category-grid">
             <router-link to="/category/fresh-produce" class="category-card">
@@ -191,26 +167,16 @@ const handleCart = () => {
         <div class="container">
           <div class="section-header">
             <h2>Today's Best Deals</h2>
-            <router-link to="/category" class="view-all"
-              >View all →</router-link
-            >
+            <router-link to="/category" class="view-all">View all →</router-link>
           </div>
 
-          <div
-            v-if="productStore.loading"
-            style="text-align: center; padding: 40px"
-          >
+          <div v-if="productStore.loading" style="text-align: center; padding: 40px">
             Loading products...
           </div>
 
           <div v-else class="product-grid">
-            <div
-              v-for="product in productStore.featuredProducts"
-              :key="product.id"
-              class="product-card"
-              @click="router.push(`/product/${product.id}`)"
-              style="cursor: pointer"
-            >
+            <div v-for="product in productStore.featuredProducts" :key="product.id" class="product-card"
+              @click="router.push(`/product/${product.id}`)" style="cursor: pointer">
               <div v-if="product.badge" class="product-badge">
                 {{ product.badge }}
               </div>
@@ -317,24 +283,10 @@ const handleCart = () => {
 .home-page {
   width: 100%;
   min-height: 100vh;
-  --bg: #fef6e4;
-  --headline: #001858;
-  --paragraph: #172c66;
-  --button: #f582ae;
-  --button-text: #001858;
-  --stroke: #001858;
-  --main: #f3d2c1;
-  --highlight: #fef6e4;
-  --secondary: #8bd3dd;
-  --tertiary: #f582ae;
 }
 
 .home-page .grocery-platform {
   width: 100%;
-  font-family: "DM Sans", sans-serif;
-  background: var(--bg);
-  color: var(--paragraph);
-  line-height: 1.6;
 }
 
 .home-page .container {
@@ -345,7 +297,6 @@ const handleCart = () => {
 
 /* Header */
 .home-page header {
-  background: var(--bg);
   border-bottom: 3px solid var(--stroke);
   padding: 20px 0;
   position: sticky;
@@ -354,40 +305,7 @@ const handleCart = () => {
 }
 
 .home-page .header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 30px;
-}
-
-.home-page .logo {
-  font-family: "Space Mono", monospace;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--headline);
-  text-decoration: none;
-}
-
-.home-page .search-bar {
-  flex: 1;
-  max-width: 600px;
-  position: relative;
-}
-
-.home-page .search-bar input {
-  width: 100%;
-  padding: 14px 20px;
-  border: 3px solid var(--stroke);
-  border-radius: 0;
-  font-size: 16px;
-  font-family: "DM Sans", sans-serif;
-  background: white;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.home-page .search-bar input:focus {
-  border-color: var(--button);
 }
 
 .home-page .header-actions {
@@ -403,47 +321,12 @@ const handleCart = () => {
   font-size: 14px;
   cursor: pointer;
   padding: 8px 16px;
-  font-family: "DM Sans", sans-serif;
   font-weight: 500;
   transition: color 0.2s;
 }
 
 .home-page .icon-btn:hover {
   color: var(--button);
-}
-
-.home-page .cart-btn {
-  background: var(--button);
-  color: var(--button-text);
-  border: 3px solid var(--stroke);
-  padding: 10px 24px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: "DM Sans", sans-serif;
-  font-size: 14px;
-  transition: all 0.2s;
-  position: relative;
-}
-
-.home-page .cart-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--stroke);
-}
-
-.home-page .cart-count {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--headline);
-  color: white;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
 }
 
 /* Navigation */
@@ -523,7 +406,6 @@ const handleCart = () => {
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   transition: all 0.2s;
   display: inline-block;
   text-decoration: none;
@@ -567,32 +449,6 @@ const handleCart = () => {
 /* Categories */
 .home-page .categories {
   padding: 60px 0;
-}
-
-.home-page .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 40px;
-}
-
-.home-page .section-header h2 {
-  font-size: 36px;
-  color: var(--headline);
-  font-weight: 700;
-}
-
-.view-all {
-  color: var(--headline);
-  text-decoration: none;
-  font-weight: 500;
-  border-bottom: 2px solid var(--button);
-  padding-bottom: 2px;
-  transition: color 0.2s;
-}
-
-.view-all:hover {
-  color: var(--button);
 }
 
 .category-grid {
@@ -722,7 +578,6 @@ const handleCart = () => {
   padding: 10px 20px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   font-size: 14px;
   transition: all 0.2s;
 }
@@ -769,14 +624,8 @@ const handleCart = () => {
   color: var(--paragraph);
 }
 
-/* Footer */
-.home-page footer {
-  background: var(--headline);
-  color: white;
-  padding: 60px 0 30px;
-}
-
-.footer-content {
+/* Footer (additional home-specific styles) */
+.home-page .footer-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 40px;

@@ -59,28 +59,44 @@ async function handleReset() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fef6e4;
 }
+
 .reset-box {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   border-radius: 16px;
   padding: 40px;
   width: 100%;
   max-width: 420px;
 }
-h2 { color: #001858; margin-bottom: 20px; }
-.form-group { margin-bottom: 16px; }
-label { display: block; font-weight: 600; margin-bottom: 6px; color: #001858; }
+
+h2 {
+  color: var(--headline);
+  margin-bottom: 20px;
+}
+
 input {
-  width: 100%; padding: 10px 14px; border: 2px solid #001858;
-  border-radius: 8px; font-size: 15px; box-sizing: border-box;
+  box-sizing: border-box;
+  border-radius: 8px;
 }
+
 .submit-btn {
-  width: 100%; padding: 12px; background: #001858; color: white;
-  border: none; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer;
+  width: 100%;
+  padding: 12px;
+  background: var(--headline);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  margin-top: 4px;
 }
-.submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.error-msg { color: #e74c3c; margin-bottom: 12px; }
-.success-msg { color: #27ae60; font-weight: 600; }
+
+.error-msg {
+  color: #e74c3c;
+  margin-bottom: 12px;
+}
+
+.success-msg {
+  color: #27ae60;
+  font-weight: 600;
+}
 </style>

@@ -83,10 +83,7 @@ const switchTab = (tabId: string) => {
 <template>
   <div class="product-page">
     <!-- Loading -->
-    <div
-      v-if="loading"
-      style="text-align: center; padding: 80px; font-size: 2rem"
-    >
+    <div v-if="loading" style="text-align: center; padding: 80px; font-size: 2rem">
       Loading...
     </div>
     <div v-else-if="!product" style="text-align: center; padding: 80px">
@@ -148,9 +145,7 @@ const switchTab = (tabId: string) => {
 
               <div class="product-price">
                 ${{ product.price?.toFixed(2) }}
-                <span v-if="product.weight" class="price-unit"
-                  >/ {{ product.weight }}</span
-                >
+                <span v-if="product.weight" class="price-unit">/ {{ product.weight }}</span>
               </div>
 
               <div class="product-description">
@@ -177,11 +172,7 @@ const switchTab = (tabId: string) => {
                   </div>
                 </div>
 
-                <button
-                  class="add-to-cart-btn"
-                  :class="{ added: addedToCart }"
-                  @click="handleAddToCart"
-                >
+                <button class="add-to-cart-btn" :class="{ added: addedToCart }" @click="handleAddToCart">
                   {{ addedToCart ? "✓ Added to Cart!" : "🛒 Add to Cart" }}
                 </button>
                 <button class="buy-now-btn" @click="buyNow">⚡ Buy Now</button>
@@ -192,42 +183,24 @@ const switchTab = (tabId: string) => {
           <!-- Product Details Tabs -->
           <div class="product-details-section">
             <div class="tabs">
-              <div
-                class="tab"
-                :class="{ active: activeTab === 'description' }"
-                @click="switchTab('description')"
-              >
+              <div class="tab" :class="{ active: activeTab === 'description' }" @click="switchTab('description')">
                 Description
               </div>
-              <div
-                class="tab"
-                :class="{ active: activeTab === 'nutrition' }"
-                @click="switchTab('nutrition')"
-              >
+              <div class="tab" :class="{ active: activeTab === 'nutrition' }" @click="switchTab('nutrition')">
                 Nutrition
               </div>
-              <div
-                class="tab"
-                :class="{ active: activeTab === 'storage' }"
-                @click="switchTab('storage')"
-              >
+              <div class="tab" :class="{ active: activeTab === 'storage' }" @click="switchTab('storage')">
                 Storage
               </div>
             </div>
 
-            <div
-              class="tab-content"
-              :class="{ active: activeTab === 'description' }"
-            >
+            <div class="tab-content" :class="{ active: activeTab === 'description' }">
               <h3>About This Product</h3>
               <p v-if="product?.description" style="white-space: pre-line;">{{ product.description }}</p>
               <p v-else style="color:#999;">No description available.</p>
             </div>
 
-            <div
-              class="tab-content"
-              :class="{ active: activeTab === 'nutrition' }"
-            >
+            <div class="tab-content" :class="{ active: activeTab === 'nutrition' }">
               <h3>Nutritional Information</h3>
               <template v-if="product?.nutrition?.length">
                 <table class="nutrition-table">
@@ -242,10 +215,7 @@ const switchTab = (tabId: string) => {
               <p v-else style="color:#999;">No nutritional information available.</p>
             </div>
 
-            <div
-              class="tab-content"
-              :class="{ active: activeTab === 'storage' }"
-            >
+            <div class="tab-content" :class="{ active: activeTab === 'storage' }">
               <h3>Storage Instructions</h3>
               <p v-if="product?.storage" style="white-space: pre-line;">{{ product.storage }}</p>
               <p v-else style="color:#999;">No storage instructions available.</p>
@@ -256,12 +226,7 @@ const switchTab = (tabId: string) => {
           <div class="related-products">
             <h2 class="section-title">You May Also Like</h2>
             <div class="products-grid">
-              <router-link
-                v-for="rel in relatedProducts"
-                :key="rel.id"
-                :to="`/product/${rel.id}`"
-                class="product-card"
-              >
+              <router-link v-for="rel in relatedProducts" :key="rel.id" :to="`/product/${rel.id}`" class="product-card">
                 <div class="product-card-image">
                   {{ rel.image_url || "🛒" }}
                 </div>
@@ -281,130 +246,14 @@ const switchTab = (tabId: string) => {
 </template>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
-
 .product-page {
-  font-family: "DM Sans", sans-serif;
-  background: var(--bg);
-  color: var(--paragraph);
-  line-height: 1.6;
   min-height: 100vh;
-  --bg: #fef6e4;
-  --headline: #001858;
-  --paragraph: #172c66;
-  --button: #f582ae;
-  --button-text: #001858;
-  --stroke: #001858;
-  --main: #f3d2c1;
-  --highlight: #fef6e4;
-  --secondary: #8bd3dd;
-  --tertiary: #f582ae;
-}
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* Header */
-header {
-  background: var(--bg);
-  border-bottom: 3px solid var(--stroke);
-  padding: 20px 0;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 30px;
-}
-
-.logo {
-  font-family: "Space Mono", monospace;
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--headline);
-  text-decoration: none;
-}
-
-.search-bar {
-  flex: 1;
-  max-width: 600px;
-  position: relative;
-}
-
-.search-bar input {
-  width: 100%;
-  padding: 14px 20px;
-  border: 3px solid var(--stroke);
-  font-size: 16px;
-  font-family: "DM Sans", sans-serif;
-  background: white;
-  outline: none;
 }
 
 .header-actions {
   display: flex;
   gap: 20px;
   align-items: center;
-}
-
-.cart-btn {
-  background: var(--button);
-  color: var(--button-text);
-  border: 3px solid var(--stroke);
-  padding: 10px 24px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: "DM Sans", sans-serif;
-  font-size: 14px;
-  transition: all 0.2s;
-  position: relative;
-  text-decoration: none;
-}
-
-.cart-btn:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 var(--stroke);
-}
-
-.cart-count {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: var(--headline);
-  color: white;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-/* Breadcrumb */
-.breadcrumb {
-  padding: 20px 0;
-  font-size: 14px;
-}
-
-.breadcrumb a {
-  color: var(--paragraph);
-  text-decoration: none;
-  opacity: 0.7;
-}
-
-.breadcrumb a:hover {
-  opacity: 1;
-}
-
-.breadcrumb span {
-  margin: 0 8px;
-  opacity: 0.5;
 }
 
 /* Product Section */
@@ -625,7 +474,6 @@ header {
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   transition: all 0.2s;
   margin-bottom: 12px;
 }
@@ -648,7 +496,6 @@ header {
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   transition: all 0.2s;
 }
 

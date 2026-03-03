@@ -1,24 +1,514 @@
-@import './base.css';
+/* ============================================================================
+   MARK: COMMON STYLES - Shared across all views
+   ========================================================================= */
 
-#app {
-  width: 100%;
+/* Font Imports */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
+
+/* ============================================================================
+   MARK: CSS CUSTOM PROPERTIES (Design Tokens)
+   ========================================================================= */
+
+:root {
+  --bg: #fef6e4;
+  --headline: #001858;
+  --paragraph: #172c66;
+  --button: #f582ae;
+  --button-text: #001858;
+  --stroke: #001858;
+  --main: #f3d2c1;
+  --highlight: #fef6e4;
+  --secondary: #8bd3dd;
+  --tertiary: #f582ae;
+}
+
+/* ============================================================================
+   MARK: BASE / RESET
+   ========================================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "DM Sans", sans-serif;
+  background: var(--bg);
+  color: var(--paragraph);
+  line-height: 1.6;
   margin: 0;
   padding: 0;
-  font-weight: normal;
 }
 
-a,
-.green {
+/* ============================================================================
+   MARK: LAYOUT
+   ========================================================================= */
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ============================================================================
+   MARK: HEADER
+   ========================================================================= */
+
+header {
+  background: var(--bg);
+  border-bottom: 3px solid var(--stroke);
+  padding: 20px 0;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+}
+
+.logo {
+  font-family: "Space Mono", monospace;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--headline);
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+.back-link {
+  color: var(--headline);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 10px 20px;
+  border: 3px solid var(--stroke);
+  background: white;
+  transition: all 0.2s;
+}
+
+.back-link:hover {
+  background: var(--main);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--stroke);
+}
+
+/* ============================================================================
+   MARK: BUTTONS
+   ========================================================================= */
+
+.btn,
+.checkout-btn,
+.submit-btn {
+  background: var(--button);
+  color: var(--button-text);
+  border: 3px solid var(--stroke);
+  padding: 14px 24px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 16px;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn:hover:not(:disabled),
+.checkout-btn:hover:not(:disabled),
+.submit-btn:hover:not(:disabled) {
+  transform: translate(-3px, -3px);
+  box-shadow: 5px 5px 0 var(--stroke);
+}
+
+.btn:active:not(:disabled),
+.checkout-btn:active:not(:disabled),
+.submit-btn:active:not(:disabled) {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 var(--stroke);
+}
+
+.btn:disabled,
+.checkout-btn:disabled,
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--button);
+  color: var(--button-text);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--headline);
+}
+
+.btn-cancel {
+  background: white;
+  color: #e74c3c;
+  border-color: #e74c3c;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #ffe0e0;
+}
+
+/* ============================================================================
+   MARK: CART BUTTON
+   ========================================================================= */
+
+.cart-btn {
+  background: var(--button);
+  color: var(--button-text);
+  border: 3px solid var(--stroke);
+  padding: 10px 24px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.cart-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--stroke);
+}
+
+.cart-count {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--headline);
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* ============================================================================
+   MARK: FORMS
+   ========================================================================= */
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  color: var(--headline);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 3px solid var(--stroke);
+  font-size: 16px;
+  font-family: "DM Sans", sans-serif;
+  background: white;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--button);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--stroke);
+}
+
+.form-input::placeholder {
+  color: #999;
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.form-checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--stroke);
+  cursor: pointer;
+}
+
+.form-checkbox label {
+  font-size: 14px;
+  color: var(--paragraph);
+  cursor: pointer;
+}
+
+.form-link {
+  color: var(--headline);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 2px solid var(--button);
+  padding-bottom: 1px;
+  transition: color 0.2s;
+}
+
+.form-link:hover {
+  color: var(--button);
+}
+
+/* ============================================================================
+   MARK: MESSAGES
+   ========================================================================= */
+
+.error-message {
+  background: #ffe0e0;
+  border: 3px solid #ff6b6b;
+  padding: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #d63031;
+  font-weight: 600;
+}
+
+.success-message {
+  background: #e0ffe0;
+  border: 3px solid #6bcf7f;
+  padding: 12px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: #27ae60;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   MARK: DIVIDER
+   ========================================================================= */
+
+.divider {
+  text-align: center;
+  margin: 24px 0;
+  position: relative;
+}
+
+.divider::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 3px;
+  background: var(--stroke);
+}
+
+.divider span {
+  background: white;
+  padding: 0 16px;
+  position: relative;
+  font-weight: 600;
+  color: var(--headline);
+}
+
+/* ============================================================================
+   MARK: SEARCH BAR
+   ========================================================================= */
+
+.search-bar {
+  flex: 1;
+  max-width: 600px;
+  position: relative;
+}
+
+.search-bar input,
+.search-input {
+  width: 100%;
+  padding: 14px 20px;
+  border: 3px solid var(--stroke);
+  font-size: 16px;
+  font-family: "DM Sans", sans-serif;
+  background: white;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.search-bar input:focus,
+.search-input:focus {
+  border-color: var(--button);
+}
+
+/* ============================================================================
+   MARK: BREADCRUMB
+   ========================================================================= */
+
+.breadcrumb {
+  padding: 20px 0;
+  font-size: 14px;
+}
+
+.breadcrumb a {
+  color: var(--paragraph);
+  text-decoration: none;
+  opacity: 0.7;
+}
+
+.breadcrumb a:hover {
+  opacity: 1;
+}
+
+.breadcrumb span {
+  margin: 0 8px;
+  opacity: 0.5;
+}
+
+/* ============================================================================
+   MARK: SECTION HEADER
+   ========================================================================= */
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.section-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--headline);
+}
+
+.section-subtitle {
+  font-size: 16px;
+  color: var(--paragraph);
+  opacity: 0.8;
+}
+
+.page-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-bottom: 12px;
+}
+
+.page-subtitle {
+  font-size: 20px;
+  color: var(--paragraph);
+}
+
+/* ============================================================================
+   MARK: FOOTER
+   ========================================================================= */
+
+footer {
+  background: var(--headline);
+  color: white;
+  padding: 30px 0;
+  text-align: center;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   MARK: MODALS
+   ========================================================================= */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 24, 88, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: white;
+  border: 3px solid var(--stroke);
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   MARK: SOCIAL BUTTONS
+   ========================================================================= */
+
+.social-btn {
+  width: 100%;
+  background: white;
+  color: var(--headline);
+  border: 3px solid var(--stroke);
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: "DM Sans", sans-serif;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.social-btn:hover:not(:disabled) {
+  background: var(--secondary);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0 var(--stroke);
+}
+
+.social-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   MARK: UTILITY CLASSES
+   ========================================================================= */
+
+.text-center {
+  text-align: center;
+}
+
+.mb-20 {
+  margin-bottom: 20px;
+}
+
+.mt-20 {
+  margin-top: 20px;
+}
+
+/* ============================================================================
+   MARK: RESPONSIVE
+   ========================================================================= */
+
+@media (max-width: 968px) {
+  .header-content {
+    flex-wrap: wrap;
+  }
+
+  .search-bar {
+    order: 3;
+    flex-basis: 100%;
+    max-width: 100%;
   }
 }
 
+@media (max-width: 640px) {
+  .section-title {
+    font-size: 24px;
+  }
 
+  .page-title {
+    font-size: 28px;
+  }
+}

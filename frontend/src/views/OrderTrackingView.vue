@@ -12,7 +12,7 @@ const orderId = route.params.orderId as string;
 const loading = ref(true);
 const error = ref<string | null>(null);
 
-// ─── Real order data ────────────────────────────────────────────────
+// ─── MARK: Real order data ────────────────────────────────────────────────
 const order = ref<any>(null);
 
 const fetchOrder = async () => {
@@ -37,7 +37,7 @@ const fetchOrder = async () => {
   }
 };
 
-// ─── Computed helpers ───────────────────────────────────────────────
+// ─── MARK: Computed helpers ───────────────────────────────────────────────
 const statusSteps = [
   {
     key: "pending",
@@ -178,7 +178,7 @@ const deliveryFee = computed(() => {
   return Math.max(total - subtotal.value, 0);
 });
 
-// ─── Utilities ──────────────────────────────────────────────────────
+// ─── MARK: Utilities ──────────────────────────────────────────────────────
 const formatDate = (iso: string) => {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("en-US", {
@@ -190,7 +190,7 @@ const formatDate = (iso: string) => {
   });
 };
 
-// ─── Actions ────────────────────────────────────────────────────────
+// ─── MARK: Actions ────────────────────────────────────────────────────────
 const handlePrint = () => window.print();
 
 const handleReorder = () => {
@@ -231,18 +231,12 @@ onMounted(fetchOrder);
     <div class="main-content">
       <div class="container">
         <!-- Loading -->
-        <div
-          v-if="loading"
-          style="padding: 60px; text-align: center; font-size: 18px"
-        >
+        <div v-if="loading" style="padding: 60px; text-align: center; font-size: 18px">
           Loading order…
         </div>
 
         <!-- Error -->
-        <div
-          v-else-if="error"
-          style="padding: 60px; text-align: center; color: #e74c3c"
-        >
+        <div v-else-if="error" style="padding: 60px; text-align: center; color: #e74c3c">
           {{ error }}
           <br /><router-link to="/profile">← Back to My Orders</router-link>
         </div>
@@ -265,10 +259,7 @@ onMounted(fetchOrder);
                 <div class="status-icon">{{ currentStatusIcon }}</div>
                 <div class="status-info">
                   <h3>{{ currentStatusLabel }}</h3>
-                  <p
-                    v-if="order.status === 'cancelled'"
-                    style="color: #e74c3c; font-size: 13px; margin: 0"
-                  >
+                  <p v-if="order.status === 'cancelled'" style="color: #e74c3c; font-size: 13px; margin: 0">
                     Cancelled
                     {{
                       order.cancelled_at ? formatDate(order.cancelled_at) : ""
@@ -285,12 +276,7 @@ onMounted(fetchOrder);
 
             <!-- Timeline -->
             <div class="timeline">
-              <div
-                v-for="(item, idx) in timeline"
-                :key="idx"
-                class="timeline-item"
-                :class="item.status"
-              >
+              <div v-for="(item, idx) in timeline" :key="idx" class="timeline-item" :class="item.status">
                 <div class="timeline-marker">{{ item.icon }}</div>
                 <div class="timeline-content">
                   <div class="timeline-title">{{ item.label }}</div>
@@ -329,9 +315,7 @@ onMounted(fetchOrder);
                 </div>
               </template>
               <div v-else class="detail-row">
-                <span class="detail-value" style="color: #999"
-                  >No address provided</span
-                >
+                <span class="detail-value" style="color: #999">No address provided</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">Delivery Slot:</span>
@@ -358,9 +342,7 @@ onMounted(fetchOrder);
               </div>
               <div class="detail-row">
                 <span class="detail-label">Total Paid:</span>
-                <span class="detail-value total-price"
-                  >${{ (order.total_amount ?? 0).toFixed(2) }}</span
-                >
+                <span class="detail-value total-price">${{ (order.total_amount ?? 0).toFixed(2) }}</span>
               </div>
             </div>
           </div>
@@ -369,16 +351,10 @@ onMounted(fetchOrder);
           <div class="items-card">
             <h3 class="detail-title">
               <span>📦</span>
-              <span
-                >Order Items ({{ order.order_items?.length ?? 0 }} items)</span
-              >
+              <span>Order Items ({{ order.order_items?.length ?? 0 }} items)</span>
             </h3>
             <div class="items-list">
-              <div
-                v-for="item in order.order_items"
-                :key="item.product?.id"
-                class="item"
-              >
+              <div v-for="item in order.order_items" :key="item.product?.id" class="item">
                 <div class="item-icon">
                   {{ item.product?.image_url || "🛒" }}
                 </div>
@@ -402,11 +378,7 @@ onMounted(fetchOrder);
             <button class="btn btn-secondary" @click="handlePrint">
               📄 Print Receipt
             </button>
-            <button
-              v-if="order.status !== 'cancelled'"
-              class="btn btn-primary"
-              @click="handleReorder"
-            >
+            <button v-if="order.status !== 'cancelled'" class="btn btn-primary" @click="handleReorder">
               🛒 Order Again
             </button>
           </div>
@@ -417,57 +389,12 @@ onMounted(fetchOrder);
 </template>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap");
-
 .order-tracking-page {
-  font-family: "DM Sans", sans-serif;
-  background: #fef6e4;
-  color: #172c66;
-  line-height: 1.6;
   min-height: 100vh;
 }
 
 .container {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* Header */
-header {
-  background: #fef6e4;
-  border-bottom: 3px solid #001858;
-  padding: 20px 0;
-}
-
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo {
-  font-family: "Space Mono", monospace;
-  font-size: 28px;
-  font-weight: 700;
-  color: #001858;
-  text-decoration: none;
-}
-
-.back-link {
-  color: #001858;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 10px 20px;
-  border: 3px solid #001858;
-  background: white;
-  transition: all 0.2s;
-}
-
-.back-link:hover {
-  background: #f3d2c1;
-  transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 #001858;
 }
 
 /* Main Content */
@@ -480,27 +407,20 @@ header {
   margin-bottom: 40px;
 }
 
-.page-title {
-  font-size: 36px;
-  font-weight: 700;
-  color: #001858;
-  margin-bottom: 12px;
-}
-
 .order-number {
   font-size: 20px;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 .order-number strong {
-  color: #001858;
+  color: var(--headline);
   font-weight: 700;
 }
 
 /* Status Timeline */
 .status-section {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   padding: 40px;
   margin-bottom: 30px;
 }
@@ -525,19 +445,19 @@ header {
 .status-info h3 {
   font-size: 24px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 4px;
 }
 
 .status-time {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
   opacity: 0.7;
 }
 
 .eta-box {
-  background: #8bd3dd;
-  border: 3px solid #001858;
+  background: var(--secondary);
+  border: 3px solid var(--stroke);
   padding: 20px 24px;
   text-align: right;
 }
@@ -545,7 +465,7 @@ header {
 .eta-label {
   font-size: 12px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   opacity: 0.7;
   margin-bottom: 4px;
 }
@@ -553,7 +473,7 @@ header {
 .eta-time {
   font-size: 24px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 /* Timeline */
@@ -569,7 +489,7 @@ header {
   top: 0;
   bottom: 0;
   width: 4px;
-  background: #001858;
+  background: var(--stroke);
 }
 
 .timeline-item {
@@ -586,7 +506,7 @@ header {
   left: -52px;
   width: 40px;
   height: 40px;
-  border: 4px solid #001858;
+  border: 4px solid var(--stroke);
   background: white;
   border-radius: 50%;
   display: flex;
@@ -596,32 +516,34 @@ header {
 }
 
 .timeline-item.completed .timeline-marker {
-  background: #8bd3dd;
+  background: var(--secondary);
 }
 
 .timeline-item.active .timeline-marker {
-  background: #f582ae;
+  background: var(--button);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
+
   0%,
   100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.1);
   }
 }
 
 .timeline-content {
-  background: #fef6e4;
-  border: 3px solid #001858;
+  background: var(--bg);
+  border: 3px solid var(--stroke);
   padding: 20px;
 }
 
 .timeline-item.completed .timeline-content {
-  background: #f3d2c1;
+  background: var(--main);
 }
 
 .timeline-item.active .timeline-content {
@@ -631,20 +553,20 @@ header {
 .timeline-title {
   font-size: 18px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 4px;
 }
 
 .timeline-time {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
   opacity: 0.7;
   margin-bottom: 8px;
 }
 
 .timeline-description {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 /* Order Details */
@@ -657,14 +579,14 @@ header {
 
 .detail-card {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   padding: 24px;
 }
 
 .detail-title {
   font-size: 18px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -675,7 +597,7 @@ header {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 2px solid #001858;
+  border-bottom: 2px solid var(--stroke);
 }
 
 .detail-row:last-child {
@@ -683,24 +605,24 @@ header {
 }
 
 .detail-label {
-  color: #172c66;
+  color: var(--paragraph);
   opacity: 0.8;
 }
 
 .detail-value {
   font-weight: 600;
-  color: #001858;
+  color: var(--headline);
 }
 
 .total-price {
   font-size: 20px;
-  color: #f582ae;
+  color: var(--button);
 }
 
 /* Items List */
 .items-card {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   padding: 24px;
 }
 
@@ -713,7 +635,7 @@ header {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  border: 2px solid #001858;
+  border: 2px solid var(--stroke);
   margin-bottom: 12px;
 }
 
@@ -731,20 +653,20 @@ header {
 
 .item-name {
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 4px;
 }
 
 .item-details {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
   opacity: 0.7;
 }
 
 .item-price {
   font-size: 18px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 /* Actions */
@@ -757,30 +679,11 @@ header {
 
 .btn {
   padding: 14px 32px;
-  border: 3px solid #001858;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: "DM Sans", sans-serif;
-  font-size: 16px;
-  transition: all 0.2s;
-  text-decoration: none;
-  display: inline-block;
-  background: white;
-}
-
-.btn-primary {
-  background: #f582ae;
-  color: #001858;
-}
-
-.btn-secondary {
-  background: white;
-  color: #001858;
 }
 
 .btn:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 #001858;
+  box-shadow: 4px 4px 0 var(--stroke);
 }
 
 /* Responsive */

@@ -278,18 +278,11 @@ const goToCart = () => {
         <div class="header-content">
           <router-link to="/" class="logo">Deployma</router-link>
           <div class="search-bar">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search for products..."
-              class="search-input"
-            />
+            <input v-model="searchQuery" type="text" placeholder="Search for products..." class="search-input" />
           </div>
           <button class="cart-btn" @click="goToCart">
             Cart
-            <span v-if="cartStore.totalItems > 0" class="cart-count">{{
-              cartStore.totalItems
-            }}</span>
+            <span v-if="cartStore.totalItems > 0" class="cart-count">{{ cartStore.totalItems }}</span>
           </button>
         </div>
       </div>
@@ -313,26 +306,16 @@ const goToCart = () => {
             <div class="filters-header">
               <div class="filters-title">
                 <span>Filters</span>
-                <span class="clear-filters" @click="clearAllFilters"
-                  >Clear All</span
-                >
+                <span class="clear-filters" @click="clearAllFilters">Clear All</span>
               </div>
             </div>
 
             <!-- Category Filter -->
             <div class="filter-group">
               <div class="filter-group-title">Category</div>
-              <div
-                v-for="cat in availableCategories"
-                :key="cat"
-                class="filter-option"
-              >
-                <input
-                  :id="cat"
-                  type="checkbox"
-                  :checked="filters.categories.includes(cat)"
-                  @change="toggleFilter('categories', cat)"
-                />
+              <div v-for="cat in availableCategories" :key="cat" class="filter-option">
+                <input :id="cat" type="checkbox" :checked="filters.categories.includes(cat)"
+                  @change="toggleFilter('categories', cat)" />
                 <label :for="cat">{{ categoryLabels[cat] }}</label>
                 <span class="filter-count">({{ filterCounts[cat] || 0 }})</span>
               </div>
@@ -342,21 +325,9 @@ const goToCart = () => {
             <div class="filter-group">
               <div class="filter-group-title">Price Range</div>
               <div class="price-range">
-                <input
-                  v-model.number="filters.priceMin"
-                  type="number"
-                  class="price-input"
-                  placeholder="Min"
-                  min="0"
-                />
+                <input v-model.number="filters.priceMin" type="number" class="price-input" placeholder="Min" min="0" />
                 <span>-</span>
-                <input
-                  v-model.number="filters.priceMax"
-                  type="number"
-                  class="price-input"
-                  placeholder="Max"
-                  min="0"
-                />
+                <input v-model.number="filters.priceMax" type="number" class="price-input" placeholder="Max" min="0" />
               </div>
             </div>
 
@@ -364,21 +335,12 @@ const goToCart = () => {
             <div class="filter-group">
               <div class="filter-group-title">Availability</div>
               <div class="filter-option">
-                <input
-                  id="in-stock"
-                  type="checkbox"
-                  :checked="filters.inStock"
-                  @change="toggleBooleanFilter('inStock')"
-                />
+                <input id="in-stock" type="checkbox" :checked="filters.inStock"
+                  @change="toggleBooleanFilter('inStock')" />
                 <label for="in-stock">In Stock Only</label>
               </div>
               <div class="filter-option">
-                <input
-                  id="on-sale"
-                  type="checkbox"
-                  :checked="filters.onSale"
-                  @change="toggleBooleanFilter('onSale')"
-                />
+                <input id="on-sale" type="checkbox" :checked="filters.onSale" @change="toggleBooleanFilter('onSale')" />
                 <label for="on-sale">On Sale</label>
               </div>
             </div>
@@ -396,18 +358,10 @@ const goToCart = () => {
               </div>
               <div class="products-controls">
                 <div class="view-toggle">
-                  <button
-                    class="view-btn"
-                    :class="{ active: viewMode === 'grid' }"
-                    @click="toggleView('grid')"
-                  >
+                  <button class="view-btn" :class="{ active: viewMode === 'grid' }" @click="toggleView('grid')">
                     ⊞
                   </button>
-                  <button
-                    class="view-btn"
-                    :class="{ active: viewMode === 'list' }"
-                    @click="toggleView('list')"
-                  >
+                  <button class="view-btn" :class="{ active: viewMode === 'list' }" @click="toggleView('list')">
                     ☰
                   </button>
                 </div>
@@ -423,43 +377,21 @@ const goToCart = () => {
 
             <!-- Active Filters -->
             <div v-if="activeFilterTags.length > 0" class="active-filters show">
-              <span style="font-weight: 700; font-size: 14px"
-                >Active Filters:</span
-              >
-              <span
-                v-for="tag in activeFilterTags"
-                :key="`${tag.key}-${tag.value}`"
-                class="filter-tag"
-              >
+              <span style="font-weight: 700; font-size: 14px">Active Filters:</span>
+              <span v-for="tag in activeFilterTags" :key="`${tag.key}-${tag.value}`" class="filter-tag">
                 {{ tag.label }}
-                <span
-                  class="remove-filter"
-                  @click="removeFilter(tag.key, tag.value)"
-                  >×</span
-                >
+                <span class="remove-filter" @click="removeFilter(tag.key, tag.value)">×</span>
               </span>
             </div>
 
             <!-- Products Grid -->
             <div class="products-container">
-              <div
-                v-if="productStore.loading"
-                class="loading-state"
-                style="text-align: center; padding: 40px"
-              >
+              <div v-if="productStore.loading" class="loading-state" style="text-align: center; padding: 40px">
                 Loading products...
               </div>
 
-              <div
-                v-else
-                class="products-grid"
-                :class="{ 'list-view': viewMode === 'list' }"
-              >
-                <div
-                  v-for="product in filteredProducts"
-                  :key="product.id"
-                  class="product-card"
-                >
+              <div v-else class="products-grid" :class="{ 'list-view': viewMode === 'list' }">
+                <div v-for="product in filteredProducts" :key="product.id" class="product-card">
                   <div v-if="product.badge" class="product-badge">
                     {{ product.badge }}
                   </div>
@@ -483,10 +415,7 @@ const goToCart = () => {
                 </div>
               </div>
 
-              <div
-                v-if="!productStore.loading && filteredProducts.length === 0"
-                class="no-results"
-              >
+              <div v-if="!productStore.loading && filteredProducts.length === 0" class="no-results">
                 <p>No products found matching your filters.</p>
                 <button class="clear-btn" @click="clearAllFilters">
                   Clear All Filters
@@ -510,7 +439,6 @@ const goToCart = () => {
 <style scoped>
 .category-page {
   min-height: 100vh;
-  background: #fef6e4;
 }
 
 .container {
@@ -521,8 +449,7 @@ const goToCart = () => {
 
 /* Header */
 .header {
-  background: #fef6e4;
-  border-bottom: 3px solid #001858;
+  border-bottom: 3px solid var(--stroke);
   padding: 20px 0;
 }
 
@@ -537,7 +464,7 @@ const goToCart = () => {
   font-family: "Space Mono", monospace;
   font-size: 28px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   text-decoration: none;
 }
 
@@ -549,21 +476,19 @@ const goToCart = () => {
 .search-input {
   width: 100%;
   padding: 14px 20px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   font-size: 16px;
-  font-family: "DM Sans", sans-serif;
   background: white;
   outline: none;
 }
 
 .cart-btn {
   background: #f582ae;
-  color: #001858;
-  border: 3px solid #001858;
+  color: var(--button-text);
+  border: 3px solid var(--stroke);
   padding: 10px 24px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   font-size: 14px;
   transition: all 0.2s;
   position: relative;
@@ -571,14 +496,14 @@ const goToCart = () => {
 
 .cart-btn:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 #001858;
+  box-shadow: 4px 4px 0 var(--stroke);
 }
 
 .cart-count {
   position: absolute;
   top: -8px;
   right: -8px;
-  background: #001858;
+  background: var(--headline);
   color: white;
   width: 22px;
   height: 22px;
@@ -597,7 +522,7 @@ const goToCart = () => {
 }
 
 .breadcrumb a {
-  color: #172c66;
+  color: var(--paragraph);
   text-decoration: none;
   opacity: 0.7;
 }
@@ -625,7 +550,7 @@ const goToCart = () => {
 /* Sidebar Filters */
 .filters-sidebar {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   height: fit-content;
   position: sticky;
   top: 20px;
@@ -633,14 +558,14 @@ const goToCart = () => {
 
 .filters-header {
   padding: 20px;
-  border-bottom: 3px solid #001858;
-  background: #f3d2c1;
+  border-bottom: 3px solid var(--stroke);
+  background: var(--main);
 }
 
 .filters-title {
   font-size: 20px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -656,7 +581,7 @@ const goToCart = () => {
 
 .filter-group {
   padding: 20px;
-  border-bottom: 2px solid #001858;
+  border-bottom: 2px solid var(--stroke);
 }
 
 .filter-group:last-child {
@@ -666,7 +591,7 @@ const goToCart = () => {
 .filter-group-title {
   font-size: 16px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 12px;
 }
 
@@ -681,7 +606,7 @@ const goToCart = () => {
 .filter-option input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   cursor: pointer;
 }
 
@@ -689,13 +614,13 @@ const goToCart = () => {
   font-size: 14px;
   cursor: pointer;
   flex: 1;
-  color: #001858;
+  color: var(--headline);
   font-weight: 500;
 }
 
 .filter-count {
   font-size: 12px;
-  color: #172c66;
+  color: var(--paragraph);
   opacity: 0.7;
   font-weight: 600;
 }
@@ -708,7 +633,7 @@ const goToCart = () => {
 }
 
 .price-range span {
-  color: #001858;
+  color: var(--headline);
   font-weight: 600;
   flex-shrink: 0;
 }
@@ -717,21 +642,20 @@ const goToCart = () => {
   flex: 1;
   min-width: 0;
   padding: 8px;
-  border: 2px solid #001858;
-  font-family: "DM Sans", sans-serif;
+  border: 2px solid var(--stroke);
   font-size: 14px;
-  color: #001858;
+  color: var(--headline);
 }
 
 /* Products Area */
 .products-area {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
 }
 
 .products-header {
   padding: 20px 24px;
-  border-bottom: 3px solid #001858;
+  border-bottom: 3px solid var(--stroke);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -742,13 +666,13 @@ const goToCart = () => {
 .category-info h1 {
   font-size: 28px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 4px;
 }
 
 .results-count {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
   opacity: 0.7;
 }
 
@@ -761,14 +685,14 @@ const goToCart = () => {
 .view-toggle {
   display: flex;
   gap: 0;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
 }
 
 .view-btn {
   padding: 8px 16px;
   background: white;
   border: none;
-  border-right: 3px solid #001858;
+  border-right: 3px solid var(--stroke);
   cursor: pointer;
   font-size: 18px;
   transition: background 0.2s;
@@ -785,8 +709,8 @@ const goToCart = () => {
 
 .sort-select {
   padding: 10px 16px;
-  border: 3px solid #001858;
-  font-family: "DM Sans", sans-serif;
+  border: 3px solid var(--stroke);
+  font-family: inherit;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -796,8 +720,8 @@ const goToCart = () => {
 /* Active Filters */
 .active-filters {
   padding: 16px 24px;
-  border-bottom: 3px solid #001858;
-  background: #fef6e4;
+  border-bottom: 3px solid var(--stroke);
+  background: var(--bg);
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -810,7 +734,7 @@ const goToCart = () => {
   gap: 8px;
   padding: 6px 12px;
   background: #f582ae;
-  border: 2px solid #001858;
+  border: 2px solid var(--stroke);
   font-size: 13px;
   font-weight: 600;
 }
@@ -836,8 +760,8 @@ const goToCart = () => {
 }
 
 .product-card {
-  background: #fef6e4;
-  border: 3px solid #001858;
+  background: var(--bg);
+  border: 3px solid var(--stroke);
   padding: 0;
   transition: all 0.3s;
   position: relative;
@@ -845,7 +769,7 @@ const goToCart = () => {
 
 .product-card:hover {
   transform: translate(-4px, -4px);
-  box-shadow: 6px 6px 0 #001858;
+  box-shadow: 6px 6px 0 var(--stroke);
 }
 
 .product-badge {
@@ -853,17 +777,17 @@ const goToCart = () => {
   top: 16px;
   right: 16px;
   background: #f582ae;
-  color: #001858;
+  color: var(--headline);
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 700;
-  border: 2px solid #001858;
+  border: 2px solid var(--stroke);
   z-index: 1;
 }
 
 .product-image {
   background: white;
-  border-bottom: 3px solid #001858;
+  border-bottom: 3px solid var(--stroke);
   padding: 40px;
   text-align: center;
   font-size: 80px;
@@ -881,11 +805,11 @@ const goToCart = () => {
 .product-title {
   font-size: 18px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 8px;
   cursor: pointer;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -897,7 +821,7 @@ const goToCart = () => {
 
 .product-weight {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
   margin-bottom: 16px;
 }
 
@@ -910,24 +834,24 @@ const goToCart = () => {
 .product-price {
   font-size: 24px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .add-to-cart {
   background: #f582ae;
-  color: #001858;
-  border: 3px solid #001858;
+  color: var(--button-text);
+  border: 3px solid var(--stroke);
   padding: 10px 20px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   font-size: 14px;
   transition: all 0.2s;
 }
 
 .add-to-cart:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 #001858;
+  box-shadow: 3px 3px 0 var(--stroke);
 }
 
 /* List View */
@@ -939,7 +863,7 @@ const goToCart = () => {
 .products-grid.list-view .product-image {
   height: 200px;
   border-bottom: none;
-  border-right: 3px solid #001858;
+  border-right: 3px solid var(--stroke);
 }
 
 .products-grid.list-view .product-info {
@@ -956,25 +880,25 @@ const goToCart = () => {
 
 .no-results p {
   font-size: 18px;
-  color: #172c66;
+  color: var(--paragraph);
   margin-bottom: 20px;
 }
 
 .clear-btn {
   background: #f582ae;
-  color: #001858;
-  border: 3px solid #001858;
+  color: var(--button-text);
+  border: 3px solid var(--stroke);
   padding: 12px 24px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   font-size: 14px;
   transition: all 0.2s;
 }
 
 .clear-btn:hover {
   transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 #001858;
+  box-shadow: 3px 3px 0 var(--stroke);
 }
 
 /* Pagination */
@@ -983,24 +907,23 @@ const goToCart = () => {
   display: flex;
   justify-content: center;
   gap: 8px;
-  border-top: 3px solid #001858;
+  border-top: 3px solid var(--stroke);
 }
 
 .page-btn {
   width: 40px;
   height: 40px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   background: white;
   cursor: pointer;
   font-weight: 700;
-  font-family: "DM Sans", sans-serif;
   transition: all 0.2s;
 }
 
 .page-btn:hover,
 .page-btn.active {
   background: #f582ae;
-  color: #001858;
+  color: var(--button-text);
 }
 
 /* Responsive */
@@ -1035,7 +958,7 @@ const goToCart = () => {
 
   .products-grid.list-view .product-image {
     border-right: none;
-    border-bottom: 3px solid #001858;
+    border-bottom: 3px solid var(--stroke);
   }
 
   .header-content {

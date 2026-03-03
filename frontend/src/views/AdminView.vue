@@ -18,7 +18,7 @@ const getToken = async () => {
   return data.session?.access_token ?? null;
 };
 
-// ─── Categories ────────────────────────────────────────────────────
+// ─── MARK: Categories ────────────────────────────────────────────────────
 type Category = Tables<"categories">;
 const categories = ref<Category[]>([]);
 const showCategoryModal = ref(false);
@@ -107,7 +107,7 @@ const deleteCategory = async (id: string) => {
   }
 };
 
-// ─── Orders ────────────────────────────────────────────────────────
+// ─── MARK: Orders ────────────────────────────────────────────────────────
 interface Order {
   id: string;
   created_at: string;
@@ -224,7 +224,7 @@ const orderStatusClass = (status: string) => {
   return map[status] || "badge-pending";
 };
 
-// ─── Stock ─────────────────────────────────────────────────────────
+// ─── MARK: Stock ─────────────────────────────────────────────────────────
 const stockProducts = computed(() =>
   [...productStore.products].sort(
     (a: any, b: any) => (a.quantity ?? 0) - (b.quantity ?? 0),
@@ -265,7 +265,7 @@ const updateStock = async (product: Product & { quantity?: number }) => {
   }
 };
 
-// ─── Delivery Slots ────────────────────────────────────────────────
+// ─── MARK: Delivery Slots ────────────────────────────────────────────────
 interface DeliverySlot {
   id: string;
   zone_id?: string;
@@ -413,7 +413,7 @@ const fetchStats = async () => {
   }
 };
 
-// ─── Products ──────────────────────────────────────────────────────
+// ─── MARK: Products ──────────────────────────────────────────────────────
 const showProductModal = ref(false);
 const editingProduct = ref<Partial<Product>>({});
 const isEditing = ref(false);
@@ -493,7 +493,7 @@ const deleteProduct = async (id: string) => {
   }
 };
 
-// ─── Navigation ────────────────────────────────────────────────────
+// ─── MARK: Navigation ────────────────────────────────────────────────────
 const switchSection = async (sectionId: string) => {
   activeSection.value = sectionId;
   selectedOrder.value = null;
@@ -554,92 +554,56 @@ onMounted(() => fetchStats());
           <nav>
             <div class="nav-section">
               <div class="nav-title">OVERVIEW</div>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'dashboard' }"
-                @click.prevent="switchSection('dashboard')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'dashboard' }"
+                @click.prevent="switchSection('dashboard')">
                 <span>Dashboard</span>
               </a>
             </div>
 
             <div class="nav-section">
               <div class="nav-title">CATALOG</div>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'products' }"
-                @click.prevent="switchSection('products')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'products' }"
+                @click.prevent="switchSection('products')">
                 <span>Products</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'categories' }"
-                @click.prevent="switchSection('categories')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'categories' }"
+                @click.prevent="switchSection('categories')">
                 <span>Categories</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'stock' }"
-                @click.prevent="switchSection('stock')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'stock' }"
+                @click.prevent="switchSection('stock')">
                 <span>Stock Management</span>
               </a>
             </div>
 
             <div class="nav-section">
               <div class="nav-title">ORDERS</div>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'orders' }"
-                @click.prevent="switchSection('orders')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'orders' }"
+                @click.prevent="switchSection('orders')">
                 <span>All Orders</span>
               </a>
             </div>
 
             <div class="nav-section">
               <div class="nav-title">DELIVERY</div>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'zones' }"
-                @click.prevent="switchSection('zones')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'zones' }"
+                @click.prevent="switchSection('zones')">
                 <span>Delivery Zones</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'slots' }"
-                @click.prevent="switchSection('slots')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'slots' }"
+                @click.prevent="switchSection('slots')">
                 <span>Delivery Slots</span>
               </a>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'stores' }"
-                @click.prevent="switchSection('stores')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'stores' }"
+                @click.prevent="switchSection('stores')">
                 <span>Stores/Warehouses</span>
               </a>
             </div>
 
             <div class="nav-section">
               <div class="nav-title">SYSTEM</div>
-              <a
-                href="#"
-                class="nav-item"
-                :class="{ active: activeSection === 'users' }"
-                @click.prevent="switchSection('users')"
-              >
+              <a href="#" class="nav-item" :class="{ active: activeSection === 'users' }"
+                @click.prevent="switchSection('users')">
                 <span>Users</span>
               </a>
             </div>
@@ -661,12 +625,10 @@ onMounted(() => fetchStats());
               <div class="stat-card">
                 <div class="stat-label">Total Orders Today</div>
                 <div class="stat-value">{{ stats.todayOrders }}</div>
-                <div
-                  :class="[
-                    'stat-trend',
-                    stats.todayOrdersTrend >= 0 ? 'up' : 'down',
-                  ]"
-                >
+                <div :class="[
+                  'stat-trend',
+                  stats.todayOrdersTrend >= 0 ? 'up' : 'down',
+                ]">
                   {{ stats.todayOrdersTrend >= 0 ? "↑" : "↓" }}
                   {{ Math.abs(stats.todayOrdersTrend) }}% from yesterday
                 </div>
@@ -676,12 +638,10 @@ onMounted(() => fetchStats());
                 <div class="stat-value">
                   ${{ stats.todayRevenue.toLocaleString() }}
                 </div>
-                <div
-                  :class="[
-                    'stat-trend',
-                    stats.todayRevenueTrend >= 0 ? 'up' : 'down',
-                  ]"
-                >
+                <div :class="[
+                  'stat-trend',
+                  stats.todayRevenueTrend >= 0 ? 'up' : 'down',
+                ]">
                   {{ stats.todayRevenueTrend >= 0 ? "↑" : "↓" }}
                   {{ Math.abs(stats.todayRevenueTrend) }}% from yesterday
                 </div>
@@ -707,10 +667,7 @@ onMounted(() => fetchStats());
 
           <!-- Products Section -->
           <section v-show="activeSection === 'products'">
-            <div
-              class="page-header"
-              style="display: flex; justify-content: space-between"
-            >
+            <div class="page-header" style="display: flex; justify-content: space-between">
               <div>
                 <h1 class="page-title">Products</h1>
                 <p class="page-subtitle">Manage your product catalog</p>
@@ -733,71 +690,53 @@ onMounted(() => fetchStats());
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="product in productStore.products"
-                    :key="product.id"
-                  >
+                  <tr v-for="product in productStore.products" :key="product.id">
                     <td>
                       <div style="font-weight: 700">{{ product.name }}</div>
-                      <div
-                        style="
+                      <div style="
                           font-size: 12px;
                           color: var(--paragraph);
                           opacity: 0.7;
-                        "
-                      >
+                        ">
                         {{ product.slug }}
                       </div>
                     </td>
                     <td>{{ product.category?.name || "Uncategorized" }}</td>
                     <td>
                       <div style="font-weight: 700">${{ product.price }}</div>
-                      <div
-                        v-if="product.original_price"
-                        style="
+                      <div v-if="product.original_price" style="
                           font-size: 12px;
                           text-decoration: line-through;
                           opacity: 0.7;
-                        "
-                      >
+                        ">
                         ${{ product.original_price }}
                       </div>
                     </td>
                     <td>{{ product.quantity || 0 }}</td>
                     <td>
-                      <span
-                        :class="[
-                          'badge',
-                          product.in_stock
-                            ? 'badge-delivered'
-                            : 'badge-pending',
-                        ]"
-                      >
+                      <span :class="[
+                        'badge',
+                        product.in_stock
+                          ? 'badge-delivered'
+                          : 'badge-pending',
+                      ]">
                         {{ product.in_stock ? "In Stock" : "Out of Stock" }}
                       </span>
                     </td>
                     <td>
-                      <button
-                        class="btn"
-                        style="
+                      <button class="btn" style="
                           margin-right: 8px;
                           padding: 4px 8px;
                           font-size: 12px;
-                        "
-                        @click="openEditProductModal(product)"
-                      >
+                        " @click="openEditProductModal(product)">
                         Edit
                       </button>
-                      <button
-                        class="btn"
-                        style="
+                      <button class="btn" style="
                           padding: 4px 8px;
                           font-size: 12px;
                           border-color: #e74c3c;
                           color: #e74c3c;
-                        "
-                        @click="deleteProduct(product.id)"
-                      >
+                        " @click="deleteProduct(product.id)">
                         Delete
                       </button>
                     </td>
@@ -814,10 +753,7 @@ onMounted(() => fetchStats());
 
           <!-- Categories Section -->
           <section v-show="activeSection === 'categories'">
-            <div
-              class="page-header"
-              style="display: flex; justify-content: space-between"
-            >
+            <div class="page-header" style="display: flex; justify-content: space-between">
               <div>
                 <h1 class="page-title">Categories</h1>
                 <p class="page-subtitle">Manage product categories</p>
@@ -848,27 +784,19 @@ onMounted(() => fetchStats());
                       {{ cat.description || "—" }}
                     </td>
                     <td>
-                      <button
-                        class="btn"
-                        style="
+                      <button class="btn" style="
                           margin-right: 8px;
                           padding: 4px 8px;
                           font-size: 12px;
-                        "
-                        @click="openEditCategoryModal(cat)"
-                      >
+                        " @click="openEditCategoryModal(cat)">
                         Edit
                       </button>
-                      <button
-                        class="btn"
-                        style="
+                      <button class="btn" style="
                           padding: 4px 8px;
                           font-size: 12px;
                           border-color: #e74c3c;
                           color: #e74c3c;
-                        "
-                        @click="deleteCategory(cat.id)"
-                      >
+                        " @click="deleteCategory(cat.id)">
                         Delete
                       </button>
                     </td>
@@ -890,29 +818,19 @@ onMounted(() => fetchStats());
                 <h1 class="page-title">Orders</h1>
                 <p class="page-subtitle">Manage all customer orders</p>
               </div>
-              <div
-                class="orders-filter"
-                style="display: flex; gap: 8px; margin-bottom: 20px"
-              >
-                <button
-                  v-for="tab in [
-                    'all',
-                    'pending',
-                    'processing',
-                    'shipped',
-                    'delivered',
-                    'cancelled',
-                  ]"
-                  :key="tab"
-                  class="btn"
-                  :class="{ 'btn-primary': activeOrderTab === tab }"
-                  style="
+              <div class="orders-filter" style="display: flex; gap: 8px; margin-bottom: 20px">
+                <button v-for="tab in [
+                  'all',
+                  'pending',
+                  'processing',
+                  'shipped',
+                  'delivered',
+                  'cancelled',
+                ]" :key="tab" class="btn" :class="{ 'btn-primary': activeOrderTab === tab }" style="
                     padding: 6px 14px;
                     font-size: 13px;
                     text-transform: capitalize;
-                  "
-                  @click="activeOrderTab = tab"
-                >
+                  " @click="activeOrderTab = tab">
                   {{
                     tab === "all"
                       ? "All"
@@ -920,10 +838,7 @@ onMounted(() => fetchStats());
                   }}
                 </button>
               </div>
-              <div
-                v-if="ordersLoading"
-                style="text-align: center; padding: 40px"
-              >
+              <div v-if="ordersLoading" style="text-align: center; padding: 40px">
                 Loading orders...
               </div>
               <div v-else-if="ordersError" style="text-align:center; padding:24px; color:#e74c3c; font-weight:600;">
@@ -943,19 +858,13 @@ onMounted(() => fetchStats());
                     </tr>
                   </thead>
                   <tbody>
-                    <tr
-                      v-for="order in filteredOrders"
-                      :key="order.id"
-                      style="cursor: pointer"
-                      @click="openOrderDetail(order)"
-                    >
-                      <td
-                        style="
+                    <tr v-for="order in filteredOrders" :key="order.id" style="cursor: pointer"
+                      @click="openOrderDetail(order)">
+                      <td style="
                           font-weight: 700;
                           font-family: monospace;
                           font-size: 13px;
-                        "
-                      >
+                        ">
                         {{ order.id.slice(0, 8).toUpperCase() }}
                       </td>
                       <td>
@@ -972,30 +881,23 @@ onMounted(() => fetchStats());
                         ${{ order.total_amount?.toFixed(2) }}
                       </td>
                       <td>
-                        <span
-                          :class="['badge', orderStatusClass(order.status)]"
-                          style="text-transform: capitalize"
-                          >{{ order.status }}</span
-                        >
+                        <span :class="['badge', orderStatusClass(order.status)]" style="text-transform: capitalize">{{
+                          order.status }}</span>
                       </td>
                       <td @click.stop>
-                        <select
-                          :value="order.status"
-                          @change="
-                            updateOrderStatus(
-                              order.id,
-                              ($event.target as HTMLSelectElement).value,
-                            )
-                          "
-                          style="
+                        <select :value="order.status" @change="
+                          updateOrderStatus(
+                            order.id,
+                            ($event.target as HTMLSelectElement).value,
+                          )
+                          " style="
                             padding: 4px 8px;
                             border: 2px solid var(--stroke);
                             font-size: 12px;
                             cursor: pointer;
                             background: white;
-                            font-family: &quot;DM Sans&quot;, sans-serif;
-                          "
-                        >
+                            font-family: 'DM Sans', sans-serif;
+                          ">
                           <option value="pending">Pending</option>
                           <option value="processing">Processing</option>
                           <option value="shipped">Shipped</option>
@@ -1013,51 +915,45 @@ onMounted(() => fetchStats());
                 </table>
               </div>
               <!-- Pagination -->
-              <div v-if="totalPages > 1" style="display:flex; align-items:center; gap:12px; margin-top:16px; justify-content:center;">
+              <div v-if="totalPages > 1"
+                style="display:flex; align-items:center; gap:12px; margin-top:16px; justify-content:center;">
                 <button class="btn" :disabled="ordersPage === 1" @click="fetchOrders(ordersPage - 1)">← Prev</button>
-                <span style="font-size:14px; color:#555;">Page {{ ordersPage }} of {{ totalPages }} ({{ ordersTotal }} orders)</span>
-                <button class="btn" :disabled="ordersPage >= totalPages" @click="fetchOrders(ordersPage + 1)">Next →</button>
+                <span style="font-size:14px; color:#555;">Page {{ ordersPage }} of {{ totalPages }} ({{ ordersTotal }}
+                  orders)</span>
+                <button class="btn" :disabled="ordersPage >= totalPages" @click="fetchOrders(ordersPage + 1)">Next
+                  →</button>
               </div>
             </div>
 
             <!-- Order Detail -->
             <div v-else>
-              <div
-                style="
+              <div style="
                   display: flex;
                   align-items: center;
                   gap: 16px;
                   margin-bottom: 24px;
-                "
-              >
+                ">
                 <button class="btn" @click="selectedOrder = null">
                   ← Back
                 </button>
                 <h1 class="page-title" style="margin: 0">
                   Order #{{ selectedOrder.id.slice(0, 8).toUpperCase() }}
                 </h1>
-                <span
-                  :class="['badge', orderStatusClass(selectedOrder.status)]"
-                  style="text-transform: capitalize"
-                  >{{ selectedOrder.status }}</span
-                >
+                <span :class="['badge', orderStatusClass(selectedOrder.status)]" style="text-transform: capitalize">{{
+                  selectedOrder.status }}</span>
               </div>
-              <div
-                style="
+              <div style="
                   display: grid;
                   grid-template-columns: 1fr 1fr;
                   gap: 20px;
                   margin-bottom: 24px;
-                "
-              >
+                ">
                 <div class="table-container" style="padding: 20px">
-                  <div
-                    style="
+                  <div style="
                       font-weight: 700;
                       margin-bottom: 12px;
                       color: var(--headline);
-                    "
-                  >
+                    ">
                     Customer Info
                   </div>
                   <div style="margin-bottom: 8px">
@@ -1082,30 +978,22 @@ onMounted(() => fetchStats());
                   </div>
                 </div>
                 <div class="table-container" style="padding: 20px">
-                  <div
-                    style="
+                  <div style="
                       font-weight: 700;
                       margin-bottom: 12px;
                       color: var(--headline);
-                    "
-                  >
+                    ">
                     Update Status
                   </div>
                   <div style="display: flex; flex-direction: column; gap: 8px">
-                    <button
-                      v-for="s in [
-                        'pending',
-                        'processing',
-                        'shipped',
-                        'delivered',
-                        'cancelled',
-                      ]"
-                      :key="s"
-                      class="btn"
-                      :class="{ 'btn-primary': selectedOrder.status === s }"
-                      style="text-transform: capitalize"
-                      @click="updateOrderStatus(selectedOrder.id, s)"
-                    >
+                    <button v-for="s in [
+                      'pending',
+                      'processing',
+                      'shipped',
+                      'delivered',
+                      'cancelled',
+                    ]" :key="s" class="btn" :class="{ 'btn-primary': selectedOrder.status === s }"
+                      style="text-transform: capitalize" @click="updateOrderStatus(selectedOrder.id, s)">
                       {{ s }}
                     </button>
                   </div>
@@ -1123,10 +1011,7 @@ onMounted(() => fetchStats());
                     </tr>
                   </thead>
                   <tbody>
-                    <tr
-                      v-for="item in selectedOrder.order_items"
-                      :key="item.product?.name"
-                    >
+                    <tr v-for="item in selectedOrder.order_items" :key="item.product?.name">
                       <td>{{ item.product?.name || "—" }}</td>
                       <td>{{ item.quantity }}</td>
                       <td>${{ item.price_at_purchase?.toFixed(2) }}</td>
@@ -1139,14 +1024,11 @@ onMounted(() => fetchStats());
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td
-                        colspan="3"
-                        style="
+                      <td colspan="3" style="
                           text-align: right;
                           font-weight: 700;
                           padding: 16px;
-                        "
-                      >
+                        ">
                         Total:
                       </td>
                       <td style="font-weight: 700; font-size: 18px">
@@ -1168,18 +1050,12 @@ onMounted(() => fetchStats());
               </p>
             </div>
             <div style="display: flex; gap: 8px; margin-bottom: 20px">
-              <button
-                v-for="f in [
-                  ['all', 'All Products'],
-                  ['low', 'Low Stock (≤10)'],
-                  ['out', 'Out of Stock'],
-                ]"
-                :key="f[0]"
-                class="btn"
-                :class="{ 'btn-primary': stockFilter === f[0] }"
-                style="padding: 6px 14px; font-size: 13px"
-                @click="stockFilter = f[0] as any"
-              >
+              <button v-for="f in [
+                ['all', 'All Products'],
+                ['low', 'Low Stock (≤10)'],
+                ['out', 'Out of Stock'],
+              ]" :key="f[0]" class="btn" :class="{ 'btn-primary': stockFilter === f[0] }"
+                style="padding: 6px 14px; font-size: 13px" @click="stockFilter = f[0] as any">
                 {{ f[1] }}
               </button>
             </div>
@@ -1195,17 +1071,12 @@ onMounted(() => fetchStats());
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="p in visibleStock"
-                    :key="p.id"
-                    :style="
-                      (p as any).quantity === 0
-                        ? 'background:#fff5f5;'
-                        : (p as any).quantity <= 10
-                          ? 'background:#fffbf0;'
-                          : ''
-                    "
-                  >
+                  <tr v-for="p in visibleStock" :key="p.id" :style="(p as any).quantity === 0
+                    ? 'background:#fff5f5;'
+                    : (p as any).quantity <= 10
+                      ? 'background:#fffbf0;'
+                      : ''
+                    ">
                     <td>
                       <div style="font-weight: 700">{{ p.name }}</div>
                       <div style="font-size: 12px; opacity: 0.6">
@@ -1214,61 +1085,44 @@ onMounted(() => fetchStats());
                     </td>
                     <td>{{ p.category?.name || "—" }}</td>
                     <td>
-                      <span
-                        :style="
-                          (p as any).quantity === 0
-                            ? 'color:#e74c3c; font-weight:700;'
-                            : (p as any).quantity <= 10
-                              ? 'color:#f39c12; font-weight:700;'
-                              : 'font-weight:700;'
-                        "
-                      >
+                      <span :style="(p as any).quantity === 0
+                        ? 'color:#e74c3c; font-weight:700;'
+                        : (p as any).quantity <= 10
+                          ? 'color:#f39c12; font-weight:700;'
+                          : 'font-weight:700;'
+                        ">
                         {{ (p as any).quantity ?? 0 }}
                       </span>
                     </td>
                     <td>
-                      <span
-                        :class="[
-                          'badge',
-                          p.in_stock ? 'badge-delivered' : 'badge-cancelled',
-                        ]"
-                      >
+                      <span :class="[
+                        'badge',
+                        p.in_stock ? 'badge-delivered' : 'badge-cancelled',
+                      ]">
                         {{ p.in_stock ? "In Stock" : "Out of Stock" }}
                       </span>
                     </td>
-                    <td
-                      @click.stop
-                      style="
+                    <td @click.stop style="
                         display: flex;
                         gap: 8px;
                         align-items: center;
                         padding: 16px;
-                      "
-                    >
-                      <input
-                        type="number"
-                        min="0"
-                        :value="(p as any).quantity ?? 0"
-                        @change="
-                          (e) => {
-                            (p as any).quantity =
-                              parseInt((e.target as HTMLInputElement).value) ||
-                              0;
-                          }
-                        "
-                        style="
+                      ">
+                      <input type="number" min="0" :value="(p as any).quantity ?? 0" @change="
+                        (e) => {
+                          (p as any).quantity =
+                            parseInt((e.target as HTMLInputElement).value) ||
+                            0;
+                        }
+                      " style="
                           width: 70px;
                           padding: 6px;
                           border: 2px solid var(--stroke);
                           font-size: 14px;
                           text-align: center;
-                        "
-                      />
-                      <button
-                        class="btn btn-primary"
-                        style="padding: 4px 10px; font-size: 12px"
-                        @click="updateStock(p as any)"
-                      >
+                        " />
+                      <button class="btn btn-primary" style="padding: 4px 10px; font-size: 12px"
+                        @click="updateStock(p as any)">
                         Save
                       </button>
                     </td>
@@ -1285,14 +1139,11 @@ onMounted(() => fetchStats());
 
           <!-- Delivery Slots Section -->
           <section v-show="activeSection === 'slots'">
-            <div
-              class="page-header"
-              style="
+            <div class="page-header" style="
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-              "
-            >
+              ">
               <div>
                 <h1 class="page-title">Delivery Slots</h1>
                 <p class="page-subtitle">
@@ -1305,44 +1156,26 @@ onMounted(() => fetchStats());
             </div>
 
             <!-- Filter bar -->
-            <div
-              style="
+            <div style="
                 display: flex;
                 gap: 12px;
                 margin-bottom: 20px;
                 align-items: center;
-              "
-            >
-              <label style="font-weight: 700; font-size: 13px"
-                >Filter by Date:</label
-              >
-              <input
-                type="date"
-                v-model="slotDateFilter"
-                @change="fetchSlots()"
-                style="
+              ">
+              <label style="font-weight: 700; font-size: 13px">Filter by Date:</label>
+              <input type="date" v-model="slotDateFilter" @change="fetchSlots()" style="
                   padding: 8px 12px;
-                  border: 2px solid #001858;
+                  border: 2px solid var(--stroke);
                   border-radius: 0;
                   font-size: 14px;
-                "
-              />
-              <button
-                v-if="slotDateFilter"
-                class="btn btn-secondary"
-                style="padding: 6px 12px; font-size: 13px"
-                @click="
-                  slotDateFilter = '';
-                  fetchSlots();
-                "
-              >
+                " />
+              <button v-if="slotDateFilter" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px" @click="
+                slotDateFilter = '';
+              fetchSlots();
+              ">
                 Clear
               </button>
-              <button
-                class="btn btn-secondary"
-                style="padding: 6px 12px; font-size: 13px"
-                @click="fetchSlots()"
-              >
+              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px" @click="fetchSlots()">
                 🔄 Refresh
               </button>
             </div>
@@ -1350,10 +1183,7 @@ onMounted(() => fetchStats());
             <div v-if="slotsLoading" style="padding: 20px; text-align: center">
               Loading slots...
             </div>
-            <div
-              v-else-if="slots.length === 0"
-              style="padding: 20px; text-align: center; color: #666"
-            >
+            <div v-else-if="slots.length === 0" style="padding: 20px; text-align: center; color: #666">
               No delivery slots found. Click "Add Slot" to create one.
             </div>
             <div v-else class="table-container">
@@ -1370,61 +1200,39 @@ onMounted(() => fetchStats());
                   </tr>
                 </thead>
                 <tbody>
-                  <tr
-                    v-for="slot in slots"
-                    :key="slot.id"
-                    :style="
-                      slot.booked >= slot.capacity ? 'background:#fff0f0;' : ''
-                    "
-                  >
+                  <tr v-for="slot in slots" :key="slot.id" :style="slot.booked >= slot.capacity ? 'background:#fff0f0;' : ''
+                    ">
                     <td style="font-weight: 600">{{ formatSlotTime(slot) }}</td>
                     <td>{{ slot.delivery_zones?.name || "—" }}</td>
                     <td>{{ slot.capacity }}</td>
-                    <td
-                      :style="
-                        slot.booked >= slot.capacity
-                          ? 'color:#e74c3c; font-weight:700;'
-                          : ''
-                      "
-                    >
+                    <td :style="slot.booked >= slot.capacity
+                      ? 'color:#e74c3c; font-weight:700;'
+                      : ''
+                      ">
                       {{ slot.booked }}
                     </td>
-                    <td
-                      :style="
-                        slot.capacity - slot.booked === 0
-                          ? 'color:#e74c3c;'
-                          : 'color:#27ae60;'
-                      "
-                    >
+                    <td :style="slot.capacity - slot.booked === 0
+                      ? 'color:#e74c3c;'
+                      : 'color:#27ae60;'
+                      ">
                       {{ slot.capacity - slot.booked }}
                     </td>
                     <td>
-                      <span
-                        class="badge"
-                        :class="slotStatusClass(slot.status)"
-                        >{{ slot.status }}</span
-                      >
+                      <span class="badge" :class="slotStatusClass(slot.status)">{{ slot.status }}</span>
                     </td>
                     <td>
                       <div style="display: flex; gap: 8px">
-                        <button
-                          class="btn btn-secondary"
-                          style="padding: 4px 10px; font-size: 12px"
-                          @click="openEditSlotModal(slot)"
-                        >
+                        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px"
+                          @click="openEditSlotModal(slot)">
                           Edit
                         </button>
-                        <button
-                          class="btn"
-                          style="
+                        <button class="btn" style="
                             padding: 4px 10px;
                             font-size: 12px;
                             background: #fff0f0;
                             color: #e74c3c;
                             border-color: #e74c3c;
-                          "
-                          @click="deleteSlot(slot.id)"
-                        >
+                          " @click="deleteSlot(slot.id)">
                           Delete
                         </button>
                       </div>
@@ -1436,19 +1244,15 @@ onMounted(() => fetchStats());
           </section>
 
           <!-- Placeholder for other sections -->
-          <section
-            v-show="
-              ![
-                'dashboard',
-                'products',
-                'categories',
-                'orders',
-                'stock',
-                'slots',
-              ].includes(activeSection)
-            "
-            class="placeholder-section"
-          >
+          <section v-show="![
+            'dashboard',
+            'products',
+            'categories',
+            'orders',
+            'stock',
+            'slots',
+          ].includes(activeSection)
+            " class="placeholder-section">
             <div class="page-header">
               <h1 class="page-title">
                 {{
@@ -1476,11 +1280,7 @@ onMounted(() => fetchStats());
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
             <div class="form-group">
               <label>Name</label>
-              <input
-                v-model="editingCategory.name"
-                placeholder="e.g. Fresh Produce"
-                required
-              />
+              <input v-model="editingCategory.name" placeholder="e.g. Fresh Produce" required />
             </div>
             <div class="form-group">
               <label>Icon (Emoji)</label>
@@ -1489,25 +1289,14 @@ onMounted(() => fetchStats());
           </div>
           <div class="form-group">
             <label>Slug (Auto-generated)</label>
-            <input
-              v-model="editingCategory.slug"
-              placeholder="url-friendly-name"
-              required
-            />
+            <input v-model="editingCategory.slug" placeholder="url-friendly-name" required />
           </div>
           <div class="form-group">
             <label>Description</label>
-            <input
-              v-model="editingCategory.description"
-              placeholder="Optional description"
-            />
+            <input v-model="editingCategory.description" placeholder="Optional description" />
           </div>
           <div class="modal-actions">
-            <button
-              type="button"
-              class="btn"
-              @click="showCategoryModal = false"
-            >
+            <button type="button" class="btn" @click="showCategoryModal = false">
               Cancel
             </button>
             <button type="submit" class="btn btn-primary">Save</button>
@@ -1523,11 +1312,7 @@ onMounted(() => fetchStats());
         <form @submit.prevent="saveProduct">
           <div class="form-group">
             <label>Name</label>
-            <input
-              v-model="editingProduct.name"
-              placeholder="e.g. Organic Avocados"
-              required
-            />
+            <input v-model="editingProduct.name" placeholder="e.g. Organic Avocados" required />
           </div>
 
           <div class="form-group">
@@ -1542,78 +1327,47 @@ onMounted(() => fetchStats());
 
           <div class="form-group">
             <label>Image URL (or Emoji)</label>
-            <input
-              v-model="editingProduct.image_url"
-              placeholder="https://example.com/image.png or 🥑"
-            />
+            <input v-model="editingProduct.image_url" placeholder="https://example.com/image.png or 🥑" />
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
             <div class="form-group">
               <label>Sale Price ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                v-model.number="editingProduct.price"
-                required
-              />
+              <input type="number" step="0.01" v-model.number="editingProduct.price" required />
             </div>
             <div class="form-group">
               <label>Original Price ($)</label>
-              <input
-                type="number"
-                step="0.01"
-                v-model.number="editingProduct.original_price"
-                placeholder="Optional"
-              />
+              <input type="number" step="0.01" v-model.number="editingProduct.original_price" placeholder="Optional" />
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
             <div class="form-group">
               <label>Weight / Unit</label>
-              <input
-                v-model="editingProduct.weight"
-                placeholder="e.g. 1kg, 500g, 1 bunch"
-                required
-              />
+              <input v-model="editingProduct.weight" placeholder="e.g. 1kg, 500g, 1 bunch" required />
             </div>
             <div class="form-group">
               <label>Slug (Auto-generated)</label>
-              <input
-                v-model="editingProduct.slug"
-                placeholder="url-friendly-name"
-                required
-              />
+              <input v-model="editingProduct.slug" placeholder="url-friendly-name" required />
             </div>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
             <div class="form-group">
               <label>Quantity</label>
-              <input
-                type="number"
-                v-model.number="editingProduct.quantity"
-                required
-              />
+              <input type="number" v-model.number="editingProduct.quantity" required />
             </div>
             <div class="form-group">
               <label>Stock Status</label>
-              <label
-                style="
+              <label style="
                   font-weight: normal;
                   display: flex;
                   align-items: center;
                   gap: 8px;
                   color: var(--headline);
                   height: 48px;
-                "
-              >
-                <input
-                  type="checkbox"
-                  v-model="editingProduct.in_stock"
-                  style="width: auto"
-                />
+                ">
+                <input type="checkbox" v-model="editingProduct.in_stock" style="width: auto" />
                 Available In Stock
               </label>
             </div>
@@ -1622,37 +1376,36 @@ onMounted(() => fetchStats());
           <!-- Description -->
           <div class="form-group" style="margin-top:16px;">
             <label>Description</label>
-            <textarea
-              v-model="editingProduct.description"
-              rows="3"
-              placeholder="Product description shown to customers"
-              style="width:100%; padding:8px; border:2px solid var(--stroke); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"
-            ></textarea>
+            <textarea v-model="editingProduct.description" rows="3" placeholder="Product description shown to customers"
+              style="width:100%; padding:8px; border:2px solid var(--stroke); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
           </div>
 
           <!-- Nutrition -->
           <div class="form-group" style="margin-top:16px;">
             <label style="display:flex; justify-content:space-between; align-items:center;">
               Nutrition Info
-              <button type="button" class="btn" style="padding:4px 10px; font-size:12px;" @click="addNutritionRow">+ Add Row</button>
+              <button type="button" class="btn" style="padding:4px 10px; font-size:12px;" @click="addNutritionRow">+ Add
+                Row</button>
             </label>
-            <div v-for="(row, idx) in editingProduct.nutrition" :key="idx" style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-top:6px; align-items:center;">
-              <input v-model="row.label" placeholder="e.g. Calories" style="padding:6px 8px; border:2px solid var(--stroke); border-radius:6px; font-size:13px;" />
-              <input v-model="row.value" placeholder="e.g. 240 kcal" style="padding:6px 8px; border:2px solid var(--stroke); border-radius:6px; font-size:13px;" />
-              <button type="button" @click="removeNutritionRow(idx)" style="background:none; border:none; color:#e74c3c; font-size:18px; cursor:pointer; line-height:1;">✕</button>
+            <div v-for="(row, idx) in editingProduct.nutrition" :key="idx"
+              style="display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-top:6px; align-items:center;">
+              <input v-model="row.label" placeholder="e.g. Calories"
+                style="padding:6px 8px; border:2px solid var(--stroke); border-radius:6px; font-size:13px;" />
+              <input v-model="row.value" placeholder="e.g. 240 kcal"
+                style="padding:6px 8px; border:2px solid var(--stroke); border-radius:6px; font-size:13px;" />
+              <button type="button" @click="removeNutritionRow(idx)"
+                style="background:none; border:none; color:#e74c3c; font-size:18px; cursor:pointer; line-height:1;">✕</button>
             </div>
-            <p v-if="!editingProduct.nutrition?.length" style="font-size:13px; color:#999; margin-top:6px;">No nutrition rows yet. Click "+ Add Row" to start.</p>
+            <p v-if="!editingProduct.nutrition?.length" style="font-size:13px; color:#999; margin-top:6px;">No nutrition
+              rows yet. Click "+ Add Row" to start.</p>
           </div>
 
           <!-- Storage -->
           <div class="form-group" style="margin-top:16px;">
             <label>Storage Instructions</label>
-            <textarea
-              v-model="editingProduct.storage"
-              rows="3"
+            <textarea v-model="editingProduct.storage" rows="3"
               placeholder="e.g. Keep refrigerated at 2-4°C. Best before 5 days."
-              style="width:100%; padding:8px; border:2px solid var(--stroke); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"
-            ></textarea>
+              style="width:100%; padding:8px; border:2px solid var(--stroke); border-radius:6px; font-family:inherit; font-size:14px; resize:vertical;"></textarea>
           </div>
 
           <div class="modal-actions">
@@ -1679,13 +1432,7 @@ onMounted(() => fetchStats());
             </div>
             <div class="form-group">
               <label>Capacity</label>
-              <input
-                type="number"
-                v-model="editingSlot.capacity"
-                min="1"
-                placeholder="20"
-                required
-              />
+              <input type="number" v-model="editingSlot.capacity" min="1" placeholder="20" required />
             </div>
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
@@ -1724,22 +1471,11 @@ onMounted(() => fetchStats());
 .admin-page-wrapper {
   width: 100%;
   min-height: 100vh;
-  --bg: #fef6e4;
-  --headline: #001858;
-  --paragraph: #172c66;
-  --button: #f582ae;
-  --button-text: #001858;
-  --stroke: #001858;
-  --main: #f3d2c1;
-  --highlight: #fef6e4;
-  --secondary: #8bd3dd;
-  --tertiary: #f582ae;
 }
 
 .admin-page-wrapper .admin-page {
   width: 100%;
   min-height: 100vh;
-  font-family: "DM Sans", sans-serif;
   background: var(--bg);
   color: var(--paragraph);
   line-height: 1.6;
@@ -1809,7 +1545,7 @@ onMounted(() => fetchStats());
   color: white;
   padding: 8px 16px;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   font-weight: 600;
   transition: all 0.2s;
 }
@@ -1971,7 +1707,6 @@ onMounted(() => fetchStats());
   border: 3px solid var(--stroke);
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   font-size: 14px;
   transition: all 0.2s;
   background: white;
@@ -2122,7 +1857,7 @@ tbody tr:last-child td {
   border: 3px solid var(--stroke);
   background: white;
   color: var(--headline);
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   font-size: 16px;
   outline: none;
 }

@@ -4,24 +4,15 @@
     <div class="progress-steps">
       <div class="container">
         <div class="steps">
-          <div
-            class="step"
-            :class="{ active: currentStep === 1, completed: currentStep > 1 }"
-          >
+          <div class="step" :class="{ active: currentStep === 1, completed: currentStep > 1 }">
             <div class="step-number">1</div>
             <div class="step-label">Shopping Cart</div>
           </div>
-          <div
-            class="step"
-            :class="{ active: currentStep === 2, completed: currentStep > 2 }"
-          >
+          <div class="step" :class="{ active: currentStep === 2, completed: currentStep > 2 }">
             <div class="step-number">2</div>
             <div class="step-label">Checkout</div>
           </div>
-          <div
-            class="step"
-            :class="{ active: currentStep === 3, completed: currentStep > 3 }"
-          >
+          <div class="step" :class="{ active: currentStep === 3, completed: currentStep > 3 }">
             <div class="step-number">3</div>
             <div class="step-label">Payment</div>
           </div>
@@ -44,11 +35,7 @@
               </div>
               <div class="cart-items">
                 <template v-if="cartStore.items.length > 0">
-                  <div
-                    v-for="item in cartStore.items"
-                    :key="item.id"
-                    class="cart-item"
-                  >
+                  <div v-for="item in cartStore.items" :key="item.id" class="cart-item">
                     <div class="item-image">{{ item.icon }}</div>
                     <div class="item-details">
                       <div class="item-name">{{ item.name }}</div>
@@ -57,24 +44,15 @@
                     </div>
                     <div class="item-actions">
                       <div class="quantity-control">
-                        <button
-                          class="qty-btn minus"
-                          @click="cartStore.updateQuantity(item.id, -1)"
-                        >
+                        <button class="qty-btn minus" @click="cartStore.updateQuantity(item.id, -1)">
                           −
                         </button>
                         <div class="qty-display">{{ item.quantity }}</div>
-                        <button
-                          class="qty-btn plus"
-                          @click="cartStore.updateQuantity(item.id, 1)"
-                        >
+                        <button class="qty-btn plus" @click="cartStore.updateQuantity(item.id, 1)">
                           +
                         </button>
                       </div>
-                      <button
-                        class="remove-btn"
-                        @click="cartStore.removeItem(item.id)"
-                      >
+                      <button class="remove-btn" @click="cartStore.removeItem(item.id)">
                         Remove
                       </button>
                     </div>
@@ -110,9 +88,7 @@
                 </div>
                 <div v-if="cartStore.discount > 0" class="summary-row">
                   <span>Discount:</span>
-                  <span style="color: #27ae60"
-                    >-${{ cartStore.discount.toFixed(2) }}</span
-                  >
+                  <span style="color: #27ae60">-${{ cartStore.discount.toFixed(2) }}</span>
                 </div>
                 <div class="summary-row total">
                   <span>Total:</span>
@@ -131,21 +107,12 @@
 
                 <div class="promo-code">
                   <div class="promo-input-group">
-                    <input
-                      v-model="promoCode"
-                      type="text"
-                      class="promo-input"
-                      placeholder="Promo code"
-                    />
+                    <input v-model="promoCode" type="text" class="promo-input" placeholder="Promo code" />
                     <button class="promo-btn" @click="applyPromo">Apply</button>
                   </div>
                 </div>
 
-                <button
-                  class="checkout-btn"
-                  :disabled="cartStore.items.length === 0"
-                  @click="proceedToCheckout"
-                >
+                <button class="checkout-btn" :disabled="cartStore.items.length === 0" @click="proceedToCheckout">
                   Proceed to Checkout
                 </button>
                 <button class="continue-shopping" @click="$router.push('/')">
@@ -169,13 +136,9 @@
                 <div v-if="savedAddresses.length > 0" style="margin-bottom: 16px;">
                   <p style="font-size:13px; color:#666; margin-bottom:8px;">Use a saved address:</p>
                   <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <button
-                      v-for="addr in savedAddresses"
-                      :key="addr.id"
-                      type="button"
-                      style="padding:8px 14px; border:2px solid #001858; background:#fef6e4; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color:#001858;"
-                      @click="fillFromAddress(addr)"
-                    >
+                    <button v-for="addr in savedAddresses" :key="addr.id" type="button"
+                      style="padding:8px 14px; border:2px solid var(--stroke); background:var(--bg); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color: var(--button-text);"
+                      @click="fillFromAddress(addr)">
                       {{ addr.label }}{{ addr.is_default ? ' ★' : '' }}
                     </button>
                   </div>
@@ -183,43 +146,23 @@
                 <form @submit.prevent="validateAndContinue">
                   <div class="form-group">
                     <label class="form-label">Full Name *</label>
-                    <input
-                      v-model="checkoutForm.fullName"
-                      type="text"
-                      class="form-input"
-                      placeholder="Enter your full name"
-                      required
-                    />
+                    <input v-model="checkoutForm.fullName" type="text" class="form-input"
+                      placeholder="Enter your full name" required />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Phone Number *</label>
-                    <input
-                      v-model="checkoutForm.phone"
-                      type="tel"
-                      class="form-input"
-                      placeholder="+84 123 456 789"
-                      required
-                    />
+                    <input v-model="checkoutForm.phone" type="tel" class="form-input" placeholder="+84 123 456 789"
+                      required />
                   </div>
                   <div class="form-group">
                     <label class="form-label">Street Address *</label>
-                    <input
-                      v-model="checkoutForm.address"
-                      type="text"
-                      class="form-input"
-                      placeholder="House number and street name"
-                      required
-                    />
+                    <input v-model="checkoutForm.address" type="text" class="form-input"
+                      placeholder="House number and street name" required />
                   </div>
                   <div class="form-row">
                     <div class="form-group">
                       <label class="form-label">District *</label>
-                      <select
-                        v-model="checkoutForm.district"
-                        class="form-select"
-                        @change="updateDeliveryZone"
-                        required
-                      >
+                      <select v-model="checkoutForm.district" class="form-select" @change="updateDeliveryZone" required>
                         <option value="">Select district</option>
                         <option value="zone-a">District 1</option>
                         <option value="zone-a">District 3</option>
@@ -233,22 +176,13 @@
                     </div>
                     <div class="form-group">
                       <label class="form-label">City *</label>
-                      <input
-                        type="text"
-                        class="form-input"
-                        value="Ho Chi Minh City"
-                        readonly
-                      />
+                      <input type="text" class="form-input" value="Ho Chi Minh City" readonly />
                     </div>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Delivery Notes (Optional)</label>
-                    <textarea
-                      v-model="checkoutForm.notes"
-                      class="form-input"
-                      rows="3"
-                      placeholder="Special instructions for delivery"
-                    ></textarea>
+                    <textarea v-model="checkoutForm.notes" class="form-input" rows="3"
+                      placeholder="Special instructions for delivery"></textarea>
                   </div>
                 </form>
               </div>
@@ -257,31 +191,20 @@
               <div class="form-section">
                 <h3 class="form-section-title">
                   Select Delivery Slot
-                  <span style="font-size: 12px; font-weight: 400; color: #666"
-                    >(optional)</span
-                  >
+                  <span style="font-size: 12px; font-weight: 400; color: #666">(optional)</span>
                 </h3>
                 <div v-if="slotsLoading" style="padding: 12px; color: #666">
                   Loading available slots…
                 </div>
-                <div
-                  v-else-if="deliverySlots.length === 0"
-                  style="padding: 12px; color: #999; font-size: 14px"
-                >
+                <div v-else-if="deliverySlots.length === 0" style="padding: 12px; color: #999; font-size: 14px">
                   No delivery slots available right now. You can select one
                   later from your profile.
                 </div>
                 <div v-else class="slot-grid">
-                  <div
-                    v-for="slot in deliverySlots"
-                    :key="slot.id"
-                    class="slot-option"
-                    :class="{
-                      selected: selectedSlot === slot.id,
-                      unavailable: !slot.available,
-                    }"
-                    @click="slot.available && (selectedSlot = slot.id)"
-                  >
+                  <div v-for="slot in deliverySlots" :key="slot.id" class="slot-option" :class="{
+                    selected: selectedSlot === slot.id,
+                    unavailable: !slot.available,
+                  }" @click="slot.available && (selectedSlot = slot.id)">
                     <div class="slot-time">{{ slot.time }}</div>
                     <div class="slot-availability">
                       {{ slot.slots }} spots left
@@ -294,13 +217,8 @@
               <div class="form-section">
                 <h3 class="form-section-title">Payment Method</h3>
                 <div class="payment-methods">
-                  <div
-                    v-for="method in paymentMethods"
-                    :key="method.id"
-                    class="payment-option"
-                    :class="{ selected: selectedPayment === method.id }"
-                    @click="selectedPayment = method.id"
-                  >
+                  <div v-for="method in paymentMethods" :key="method.id" class="payment-option"
+                    :class="{ selected: selectedPayment === method.id }" @click="selectedPayment = method.id">
                     <div class="payment-icon">{{ method.icon }}</div>
                     <div>
                       <div class="payment-name">{{ method.name }}</div>
@@ -316,12 +234,8 @@
                 <button class="back-to-cart" @click="currentStep = 1">
                   ← Back to Cart
                 </button>
-                <button
-                  class="checkout-btn"
-                  style="width: auto; display: inline-block; padding: 14px 40px"
-                  :disabled="placingOrder"
-                  @click="placeOrder"
-                >
+                <button class="checkout-btn" style="width: auto; display: inline-block; padding: 14px 40px"
+                  :disabled="placingOrder" @click="placeOrder">
                   {{ placingOrder ? "Placing Order…" : "Place Order" }}
                 </button>
               </div>
@@ -347,9 +261,7 @@
                 </div>
                 <div v-if="cartStore.discount > 0" class="summary-row">
                   <span>Discount:</span>
-                  <span style="color: #27ae60"
-                    >-${{ cartStore.discount.toFixed(2) }}</span
-                  >
+                  <span style="color: #27ae60">-${{ cartStore.discount.toFixed(2) }}</span>
                 </div>
                 <div class="summary-row total">
                   <span>Total:</span>
@@ -362,22 +274,16 @@
                     <span>Items in Order</span>
                   </div>
                   <div style="margin-top: 12px">
-                    <div
-                      v-for="item in cartStore.items"
-                      :key="item.id"
-                      style="
+                    <div v-for="item in cartStore.items" :key="item.id" style="
                         display: flex;
                         justify-content: space-between;
                         margin-bottom: 8px;
                         font-size: 14px;
-                        color: #001858;
+                        color: var(--headline);
                         font-weight: 500;
-                      "
-                    >
+                      ">
                       <span>{{ item.name }} × {{ item.quantity }}</span>
-                      <span style="font-weight: 700"
-                        >${{ (item.price * item.quantity).toFixed(2) }}</span
-                      >
+                      <span style="font-weight: 700">${{ (item.price * item.quantity).toFixed(2) }}</span>
                     </div>
                   </div>
                 </div>
@@ -397,18 +303,10 @@
           Thank you for your order! We'll send you a confirmation email shortly.
           You can track your delivery in real-time.
         </p>
-        <button
-          class="checkout-btn"
-          style="margin-bottom: 12px"
-          @click="closeSuccess"
-        >
+        <button class="checkout-btn" style="margin-bottom: 12px" @click="closeSuccess">
           Track Order
         </button>
-        <button
-          class="continue-shopping"
-          style="margin-top: 0"
-          @click="continueShopping"
-        >
+        <button class="continue-shopping" style="margin-top: 0" @click="continueShopping">
           Continue Shopping
         </button>
       </div>
@@ -445,7 +343,7 @@ const checkoutForm = ref({
   notes: "",
 });
 
-// ─── Saved Addresses ───────────────────────────────────────────────
+// ─── MARK: Saved Addresses ───────────────────────────────────────────────
 interface SavedAddress { id: string; label: string; full_name: string; phone: string; address: string; district: string; is_default: boolean; }
 const savedAddresses = ref<SavedAddress[]>([]);
 
@@ -675,7 +573,6 @@ function continueShopping() {
 }
 
 .cart-page {
-  background: #fef6e4;
   min-height: 100vh;
   padding-bottom: 40px;
 }
@@ -689,7 +586,7 @@ function continueShopping() {
 /* Progress Steps */
 .progress-steps {
   background: white;
-  border-bottom: 3px solid #001858;
+  border-bottom: 3px solid var(--stroke);
   padding: 30px 0;
 }
 
@@ -713,7 +610,7 @@ function continueShopping() {
   position: absolute;
   right: -30px;
   font-size: 20px;
-  color: #001858;
+  color: var(--button-text);
   opacity: 0.3;
 }
 
@@ -724,32 +621,32 @@ function continueShopping() {
 .step-number {
   width: 40px;
   height: 40px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 .step.active .step-number {
   background: #f582ae;
-  color: #001858;
+  color: var(--button-text);
 }
 
 .step.completed .step-number {
   background: #8bd3dd;
-  color: #001858;
+  color: var(--button-text);
 }
 
 .step-label {
   font-weight: 600;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 .step.active .step-label {
-  color: #001858;
+  color: var(--button-text);
   font-weight: 700;
 }
 
@@ -768,18 +665,18 @@ function continueShopping() {
 /* Cart Items */
 .cart-section {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
 }
 
 .section-header {
   padding: 24px;
-  border-bottom: 3px solid #001858;
+  border-bottom: 3px solid var(--stroke);
 }
 
 .section-title {
   font-size: 24px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .cart-items {
@@ -791,13 +688,13 @@ function continueShopping() {
   grid-template-columns: 80px 1fr auto;
   gap: 20px;
   padding: 20px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   margin-bottom: 16px;
   transition: all 0.2s;
 }
 
 .cart-item:hover {
-  background: #f3d2c1;
+  background: var(--main);
 }
 
 .item-image {
@@ -814,19 +711,19 @@ function continueShopping() {
 .item-name {
   font-size: 18px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .item-size {
   font-size: 14px;
-  color: #001858;
+  color: var(--headline);
   font-weight: 500;
 }
 
 .item-price {
   font-size: 20px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .item-actions {
@@ -840,7 +737,7 @@ function continueShopping() {
 .quantity-control {
   display: flex;
   align-items: center;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
 }
 
 .qty-btn {
@@ -859,18 +756,18 @@ function continueShopping() {
 }
 
 .qty-btn.minus {
-  border-right: 3px solid #001858;
+  border-right: 3px solid var(--stroke);
 }
 
 .qty-btn.plus {
-  border-left: 3px solid #001858;
+  border-left: 3px solid var(--stroke);
 }
 
 .qty-display {
   width: 50px;
   text-align: center;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .remove-btn {
@@ -899,14 +796,14 @@ function continueShopping() {
 
 .empty-cart-text {
   font-size: 20px;
-  color: #172c66;
+  color: var(--paragraph);
   margin-bottom: 24px;
 }
 
 /* Order Summary */
 .summary-section {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   height: fit-content;
   position: sticky;
   top: 20px;
@@ -921,28 +818,28 @@ function continueShopping() {
   justify-content: space-between;
   padding: 12px 0;
   font-size: 16px;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 .summary-row.total {
-  border-top: 3px solid #001858;
+  border-top: 3px solid var(--stroke);
   margin-top: 12px;
   padding-top: 20px;
   font-size: 24px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .delivery-info {
-  background: #f3d2c1;
-  border: 3px solid #001858;
+  background: var(--main);
+  border: 3px solid var(--stroke);
   padding: 16px;
   margin: 16px 0;
 }
 
 .delivery-info-title {
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -951,7 +848,7 @@ function continueShopping() {
 
 .delivery-info-text {
   font-size: 14px;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 .promo-code {
@@ -966,19 +863,18 @@ function continueShopping() {
 .promo-input {
   flex: 1;
   padding: 12px 16px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   border-right: none;
-  font-family: "DM Sans", sans-serif;
   outline: none;
 }
 
 .promo-btn {
   padding: 12px 20px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   background: white;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   transition: all 0.2s;
 }
 
@@ -989,20 +885,19 @@ function continueShopping() {
 .checkout-btn {
   width: 100%;
   background: #f582ae;
-  color: #001858;
-  border: 3px solid #001858;
+  color: var(--button-text);
+  border: 3px solid var(--stroke);
   padding: 18px;
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
   transition: all 0.2s;
   margin-top: 16px;
 }
 
 .checkout-btn:hover {
   transform: translate(-3px, -3px);
-  box-shadow: 5px 5px 0 #001858;
+  box-shadow: 5px 5px 0 var(--stroke);
 }
 
 .checkout-btn:disabled {
@@ -1013,19 +908,19 @@ function continueShopping() {
 .continue-shopping {
   width: 100%;
   background: white;
-  color: #001858;
-  border: 3px solid #001858;
+  color: var(--headline);
+  border: 3px solid var(--stroke);
   padding: 14px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   transition: all 0.2s;
   margin-top: 12px;
 }
 
 .continue-shopping:hover {
-  background: #f3d2c1;
+  background: var(--main);
 }
 
 /* Checkout Form */
@@ -1035,7 +930,7 @@ function continueShopping() {
 
 .form-section {
   background: white;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   padding: 24px;
   margin-bottom: 20px;
 }
@@ -1043,7 +938,7 @@ function continueShopping() {
 .form-section-title {
   font-size: 20px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 20px;
 }
 
@@ -1054,7 +949,7 @@ function continueShopping() {
 .form-label {
   display: block;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 8px;
   font-size: 14px;
 }
@@ -1063,8 +958,7 @@ function continueShopping() {
 .form-select {
   width: 100%;
   padding: 14px 16px;
-  border: 3px solid #001858;
-  font-family: "DM Sans", sans-serif;
+  border: 3px solid var(--stroke);
   font-size: 16px;
   outline: none;
   transition: all 0.2s;
@@ -1090,7 +984,7 @@ function continueShopping() {
 
 .slot-option {
   padding: 16px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   background: white;
   cursor: pointer;
   transition: all 0.2s;
@@ -1098,23 +992,23 @@ function continueShopping() {
 }
 
 .slot-option:hover {
-  background: #f3d2c1;
+  background: var(--main);
 }
 
 .slot-option.selected {
   background: #f582ae;
-  border-color: #001858;
+  border-color: var(--stroke);
 }
 
 .slot-time {
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 4px;
 }
 
 .slot-availability {
   font-size: 12px;
-  color: #172c66;
+  color: var(--paragraph);
 }
 
 .slot-option.unavailable {
@@ -1130,7 +1024,7 @@ function continueShopping() {
 
 .payment-option {
   padding: 16px;
-  border: 3px solid #001858;
+  border: 3px solid var(--stroke);
   background: white;
   cursor: pointer;
   transition: all 0.2s;
@@ -1140,12 +1034,12 @@ function continueShopping() {
 }
 
 .payment-option:hover {
-  background: #f3d2c1;
+  background: var(--main);
 }
 
 .payment-option.selected {
   background: #8bd3dd;
-  border-color: #001858;
+  border-color: var(--stroke);
 }
 
 .payment-icon {
@@ -1154,29 +1048,29 @@ function continueShopping() {
 
 .payment-name {
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
 }
 
 .payment-description {
   font-size: 12px;
-  color: #001858;
+  color: var(--headline);
   font-weight: 500;
 }
 
 .back-to-cart {
   background: white;
-  color: #001858;
-  border: 3px solid #001858;
+  color: var(--headline);
+  border: 3px solid var(--stroke);
   padding: 14px 24px;
   font-weight: 600;
   cursor: pointer;
-  font-family: "DM Sans", sans-serif;
+  font-family: inherit;
   transition: all 0.2s;
   margin-right: 12px;
 }
 
 .back-to-cart:hover {
-  background: #f3d2c1;
+  background: var(--main);
 }
 
 /* Success Message */
@@ -1195,8 +1089,8 @@ function continueShopping() {
 
 .success-content {
   background: white;
-  border: 3px solid #001858;
-  box-shadow: 8px 8px 0 #001858;
+  border: 3px solid var(--stroke);
+  box-shadow: 8px 8px 0 var(--stroke);
   padding: 60px;
   text-align: center;
   max-width: 500px;
@@ -1210,27 +1104,28 @@ function continueShopping() {
 .success-title {
   font-size: 32px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 16px;
 }
 
 .success-text {
   font-size: 16px;
-  color: #172c66;
+  color: var(--paragraph);
   margin-bottom: 32px;
 }
 
 .order-number {
-  background: #f3d2c1;
-  border: 3px solid #001858;
+  background: var(--main);
+  border: 3px solid var(--stroke);
   padding: 16px;
   font-weight: 700;
-  color: #001858;
+  color: var(--headline);
   margin-bottom: 24px;
 }
 
 /* Responsive */
 @media (max-width: 968px) {
+
   .cart-layout,
   .checkout-layout {
     grid-template-columns: 1fr;
