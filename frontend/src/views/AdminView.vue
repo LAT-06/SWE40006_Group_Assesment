@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useProductStore, type Product } from "@/stores/products";
 import { supabase } from "@/lib/supabase";
+import type { Tables } from "@/lib/models";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -18,13 +19,7 @@ const getToken = async () => {
 };
 
 // ─── Categories ────────────────────────────────────────────────────
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  icon?: string;
-  description?: string;
-}
+type Category = Tables<"categories">;
 const categories = ref<Category[]>([]);
 const showCategoryModal = ref(false);
 const editingCategory = ref<Partial<Category>>({});
@@ -33,7 +28,7 @@ const isEditingCategory = ref(false);
 const fetchCategories = async () => {
   const { data } = await supabase
     .from("categories")
-    .select("id, name, slug, icon, description");
+    .select("id, name, slug, icon, description, created_at");
   if (data) categories.value = data;
 };
 
@@ -202,14 +197,17 @@ const updateOrderStatus = async (orderId: string, status: string) => {
   try {
     const { error } = await supabase
       .from("orders")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ status: status as "pending" | "processing" | "shipped" | "delivered" | "cancelled", updated_at: new Date().toISOString() })
       .eq("id", orderId);
 
     if (error) throw error;
     const idx = orders.value.findIndex((o) => o.id === orderId);
-    if (idx !== -1) orders.value[idx] = { ...orders.value[idx], status };
+    if (idx !== -1) {
+      const updatedOrder = { ...orders.value[idx], status };
+      orders.value[idx] = updatedOrder as Order;
+    }
     if (selectedOrder.value?.id === orderId)
-      selectedOrder.value = { ...selectedOrder.value, status };
+      selectedOrder.value = { ...selectedOrder.value, status } as Order;
   } catch (e: any) {
     alert("Error updating order: " + e.message);
   }
