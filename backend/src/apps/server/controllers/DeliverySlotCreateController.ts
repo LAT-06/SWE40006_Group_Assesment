@@ -15,7 +15,7 @@ export class DeliverySlotCreateController {
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
       const insertPayload: any = {
         zone_id: zone_id || null,
         slot_date,

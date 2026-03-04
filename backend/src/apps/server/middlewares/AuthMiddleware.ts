@@ -2,11 +2,12 @@ import type { Request, Response } from "express";
 import httpStatus from "http-status";
 import { decodeJwt, jwtVerify } from "jose";
 
-// Extend Express Request to include user
+// Extend Express Request to include user and raw token
 declare global {
   namespace Express {
     interface Request {
       user?: any;
+      token?: string;
     }
   }
 }
@@ -31,6 +32,9 @@ export const AuthMiddleware = async (
       res.status(httpStatus.UNAUTHORIZED).json({ error: "Missing token" });
       return;
     }
+
+    // Store raw token so controllers can use createClientWithToken(req.token)
+    req.token = token;
 
     const secret = process.env.SUPABASE_JWT_SECRET;
     let payload: any = null;

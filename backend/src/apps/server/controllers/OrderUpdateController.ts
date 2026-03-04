@@ -13,7 +13,7 @@ const VALID_STATUSES = [
 export class OrderUpdateController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { status } = req.body;
 
       if (!id) {
@@ -30,7 +30,7 @@ export class OrderUpdateController {
         return;
       }
 
-      const client = SupabaseClientFactory.createServiceRoleClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
       const { data, error } = await client
         .from("orders")
         .update({ status })

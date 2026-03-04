@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class OrderSelectSlotController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { delivery_slot_id, notes } = req.body;
       const user = req.user;
 
@@ -14,7 +14,7 @@ export class OrderSelectSlotController {
         return;
       }
 
-      const client = SupabaseClientFactory.createServiceRoleClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       // Verify ownership and pending status
       const { data: order, error: fetchError } = await client
@@ -42,7 +42,7 @@ export class OrderSelectSlotController {
 
       // Verify the slot exists and is open — atomically claim it
       if (delivery_slot_id) {
-        const { data: claimed, error: claimError } = await client
+        const { data: claimed, error: claimError } = await (client as any)
           .rpc("claim_delivery_slot", { p_slot_id: delivery_slot_id });
 
         if (claimError) {

@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class CategoryGetController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { slug } = req.params;
+      const slug = req.params.slug as string;
       const client = SupabaseClientFactory.createClient();
       const { data, error } = await client
         .from("categories")

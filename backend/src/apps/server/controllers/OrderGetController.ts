@@ -5,8 +5,8 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class OrderGetController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const client = SupabaseClientFactory.createServiceRoleClient();
+      const id = req.params.id as string;
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       const { data, error } = await client
         .from("orders")

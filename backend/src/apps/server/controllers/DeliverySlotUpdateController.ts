@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class DeliverySlotUpdateController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { capacity, status, zone_id, slot_date, start_time, end_time } =
         req.body;
 
@@ -24,7 +24,7 @@ export class DeliverySlotUpdateController {
       if (start_time !== undefined) updates.start_time = start_time;
       if (end_time !== undefined) updates.end_time = end_time;
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
       const { data, error } = await client
         .from("delivery_slots")
         .update(updates)

@@ -7,7 +7,7 @@ export class CartItemAddController {
     try {
       const user = req.user;
       const { product_id, quantity } = req.body;
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       if (!product_id || !quantity) {
         res.status(httpStatus.BAD_REQUEST).json({ error: "Missing product_id or quantity" });

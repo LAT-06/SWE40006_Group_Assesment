@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class OrderCancelController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const user = req.user;
 
       if (!id) {
@@ -13,7 +13,7 @@ export class OrderCancelController {
         return;
       }
 
-      const client = SupabaseClientFactory.createServiceRoleClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       // Verify the order belongs to the user and is still pending
       const { data: order, error: fetchError } = await client

@@ -6,7 +6,7 @@ export class CartGetController {
   async run(req: Request, res: Response): Promise<void> {
     try {
       const user = req.user;
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       // 1. Get or Create Cart for user
       let { data: cart, error: cartError } = await client

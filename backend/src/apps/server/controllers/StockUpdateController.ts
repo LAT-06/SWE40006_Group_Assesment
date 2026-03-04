@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class StockUpdateController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const { quantity, in_stock } = req.body;
 
       if (!id) {
@@ -26,7 +26,7 @@ export class StockUpdateController {
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
       const { data, error } = await client
         .from("products")
         .update(updates)

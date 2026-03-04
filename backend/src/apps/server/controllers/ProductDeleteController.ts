@@ -5,14 +5,14 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class ProductDeleteController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
 
       if (!id) {
         res.status(httpStatus.BAD_REQUEST).json({ error: "Missing product ID" });
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       const { error } = await client
         .from("products")

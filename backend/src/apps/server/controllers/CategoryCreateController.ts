@@ -11,7 +11,7 @@ export class CategoryCreateController {
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
       const { data, error } = await client
         .from("categories")
         .insert({ name, slug, description, icon })

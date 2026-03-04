@@ -5,13 +5,13 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class DeliverySlotDeleteController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       if (!id) {
         res.status(httpStatus.BAD_REQUEST).json({ error: "Missing slot ID" });
         return;
       }
 
-      const client = SupabaseClientFactory.createClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       // Check no orders are assigned to this slot
       const { count } = await client

@@ -5,8 +5,8 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class CartItemRemoveController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const client = SupabaseClientFactory.createClient();
+      const id = req.params.id as string;
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       const { error } = await client.from("cart_items").delete().eq("id", id);
       if (error) throw error;

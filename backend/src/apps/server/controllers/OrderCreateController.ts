@@ -15,7 +15,7 @@ export class OrderCreateController {
         return;
       }
 
-      const serviceClient = SupabaseClientFactory.createServiceRoleClient();
+      const serviceClient = SupabaseClientFactory.createClientWithToken(req.token!);
 
       let orderItemsToInsert: any[] = [];
       let totalAmount = 0;
@@ -133,7 +133,7 @@ export class OrderCreateController {
 
       // Deduct stock quantities
       for (const item of orderItemsToInsert) {
-        await serviceClient.rpc("decrement_product_quantity", {
+        await (serviceClient as any).rpc("decrement_product_quantity", {
           p_product_id: item.product_id,
           p_amount: item.quantity,
         });

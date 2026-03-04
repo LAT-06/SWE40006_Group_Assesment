@@ -12,9 +12,9 @@ export class PromoCodeValidateController {
         return;
       }
 
-      const client = SupabaseClientFactory.createServiceRoleClient();
+      const client = SupabaseClientFactory.createClient();
 
-      const { data: promo, error } = await client
+      const { data: promo, error } = await (client as any)
         .from("promo_codes")
         .select("*")
         .eq("code", code.trim().toUpperCase())

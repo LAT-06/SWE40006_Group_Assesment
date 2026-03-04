@@ -17,45 +17,16 @@ export const AdminMiddleware = async (
       return;
     }
 
-    const client = SupabaseClientFactory.createServiceRoleClient();
-    const adminEmails = (process.env.ADMIN_EMAILS || "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean);
-    if (adminEmails.length === 0) {
-      next();
-      return;
-    }
-    const isAdminByMetadata = user.user_metadata?.isAdmin === true;
-    const isAdminByEmail =
-      typeof user.email === "string" &&
-      adminEmails.includes(user.email.toLowerCase());
+    // Use the user's own JWT — RLS + is_admin() handles authorisation
+    const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
-    // Check role in profiles table
     const { data: profile, error } = await client
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    const isAdminByProfile = !error && profile?.role === "admin";
-
-    if (!isAdminByProfile && (isAdminByMetadata || isAdminByEmail)) {
-      await client
-        .from("profiles")
-        .upsert(
-          {
-            id: user.id,
-            role: "admin",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "id" },
-        );
-      next();
-      return;
-    }
-
-    if (!isAdminByProfile) {
+    if (error || profile?.role !== "admin") {
       res
         .status(httpStatus.FORBIDDEN)
         .json({ error: "Access denied: Admins only" });

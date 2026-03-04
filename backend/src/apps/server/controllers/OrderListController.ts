@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class OrderListController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const client = SupabaseClientFactory.createServiceRoleClient();
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       const limit = Math.min(Number(req.query.limit) || 25, 100);
       const page = Math.max(Number(req.query.page) || 1, 1);

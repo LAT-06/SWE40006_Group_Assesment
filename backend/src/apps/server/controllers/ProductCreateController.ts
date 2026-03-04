@@ -30,9 +30,8 @@ export class ProductCreateController {
         return;
       }
 
-      // Use service role client to bypass RLS for admin operations
-      // Admin middleware has already verified the user is an admin
-      const client = SupabaseClientFactory.createClient();
+      // Use user's JWT token — is_admin() RLS policy enforces admin-only access
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       const { data, error } = await client
         .from("products")

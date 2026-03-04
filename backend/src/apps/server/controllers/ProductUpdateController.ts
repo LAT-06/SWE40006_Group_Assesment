@@ -5,7 +5,7 @@ import { SupabaseClientFactory } from "../../../Contexts/Shared/infrastructure/p
 export class ProductUpdateController {
   async run(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const updates = req.body;
 
       if (!id) {
@@ -15,8 +15,8 @@ export class ProductUpdateController {
         return;
       }
 
-      // Use service role client to bypass RLS for admin operations
-      const client = SupabaseClientFactory.createClient();
+      // Use user's JWT token — is_admin() RLS policy enforces admin-only writes
+      const client = SupabaseClientFactory.createClientWithToken(req.token!);
 
       const { data, error } = await client
         .from("products")
