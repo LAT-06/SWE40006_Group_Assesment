@@ -198,19 +198,8 @@ npm run preview  # Preview production build
 ```env
 # Supabase
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 SUPABASE_ANON_KEY=your_anon_key_here
 SUPABASE_JWT_SECRET=your_jwt_secret_here
-
-# Server
-PORT=3000
-NODE_ENV=development
-
-# CORS (comma-separated list of allowed frontend origins)
-ALLOWED_ORIGINS=http://localhost:5173
-
-# Admin access (comma-separated list of admin emails)
-ADMIN_EMAILS=admin@example.com
 ```
 
 ### Frontend (`frontend/.env`)
