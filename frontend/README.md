@@ -1,48 +1,48 @@
-# .
+# Deployma — Frontend
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + TypeScript frontend for the Deployma grocery delivery platform.
 
-## Recommended IDE Setup
+## Tech Stack
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- **Vue 3** with Composition API
+- **TypeScript**
+- **Pinia** for state management
+- **Vue Router** with auth guards
+- **Supabase** for authentication
+- **Vite** for development and build
 
-## Recommended Browser Setup
+## Setup
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```bash
+# Install dependencies
 npm install
-```
 
-### Compile and Hot-Reload for Development
+# Copy and fill in environment variables
+cp .env.example .env
 
-```sh
+# Start development server
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+The app will run at `http://localhost:5173`.
 
-```sh
-npm run build
+## Environment Variables
+
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anon (public) key |
+| `VITE_API_URL` | Backend API URL (default: `http://localhost:3000`) |
+
+## Commands
+
+```bash
+npm run dev          # Start development server
+npm run build        # Type-check and build for production
+npm run preview      # Preview production build
+npm run test:unit    # Run unit tests with Vitest
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+## Recommended IDE Setup
 
-```sh
-npm run test:unit
-```
+[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar)

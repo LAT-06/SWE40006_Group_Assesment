@@ -53,13 +53,12 @@ cd backend
 # Install dependencies
 npm install
 
-# Create .env file
+# Create .env file from example
 cp .env.example .env
 
-# Edit .env and add your Supabase credentials:
-# SUPABASE_URL=your_supabase_project_url
-# SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-# PORT=3000
+# Edit .env and fill in your Supabase credentials:
+# SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY,
+# SUPABASE_JWT_SECRET, PORT, ALLOWED_ORIGINS, ADMIN_EMAILS
 
 # Start development server
 npm run dev
@@ -75,12 +74,11 @@ cd frontend
 # Install dependencies
 npm install
 
-# Create .env file
+# Create .env file from example
 cp .env.example .env
 
-# Edit .env and add your Supabase credentials:
-# VITE_SUPABASE_URL=your_supabase_project_url
-# VITE_SUPABASE_ANON_KEY=your_anon_key
+# Edit .env and fill in your Supabase credentials:
+# VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_URL
 
 # Start development server
 npm run dev
@@ -195,19 +193,32 @@ npm run preview  # Preview production build
 
 ## Environment Variables
 
-### Backend (.env)
+### Backend (`backend/.env`)
 
 ```env
+# Supabase
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+SUPABASE_ANON_KEY=your_anon_key_here
+SUPABASE_JWT_SECRET=your_jwt_secret_here
+
+# Server
 PORT=3000
+NODE_ENV=development
+
+# CORS (comma-separated list of allowed frontend origins)
+ALLOWED_ORIGINS=http://localhost:5173
+
+# Admin access (comma-separated list of admin emails)
+ADMIN_EMAILS=admin@example.com
 ```
 
-### Frontend (.env)
+### Frontend (`frontend/.env`)
 
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key_here
+VITE_API_URL=http://localhost:3000
 ```
 
 ## Troubleshooting
