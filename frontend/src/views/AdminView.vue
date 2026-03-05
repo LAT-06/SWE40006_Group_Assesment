@@ -559,7 +559,7 @@ const updateUserRole = async (userId: string, role: "customer" | "admin") => {
       throw new Error(body.error || "Failed to update role");
     }
     const idx = users.value.findIndex((u) => u.id === userId);
-    if (idx !== -1) users.value[idx] = { ...users.value[idx], role };
+    if (idx !== -1) users.value[idx] = { ...users.value[idx], role } as typeof users.value[number];
   } catch (e: any) {
     alert("Error updating role: " + e.message);
   }

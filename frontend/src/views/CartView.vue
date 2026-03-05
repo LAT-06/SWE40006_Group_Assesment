@@ -48,7 +48,7 @@
                         ✗ Out of stock
                       </div>
                       <!-- Low / over-stock warning -->
-                      <div v-else-if="item.productId && stockMap[item.productId] !== undefined && item.quantity > stockMap[item.productId]"
+                      <div v-else-if="item.productId && stockMap[item.productId] !== undefined && item.quantity > (stockMap[item.productId] ?? 0)"
                         style="margin-top:4px; font-size:12px; font-weight:600; color:#856404; background:#fff3cd; padding:2px 8px; border-radius:4px; display:inline-block;">
                         Only {{ stockMap[item.productId] }} left — your quantity will be adjusted
                       </div>
@@ -60,7 +60,7 @@
                         </button>
                         <div class="qty-display">{{ item.quantity }}</div>
                         <button class="qty-btn plus"
-                          :disabled="item.productId !== undefined && stockMap[item.productId] !== undefined && item.quantity >= stockMap[item.productId]"
+                          :disabled="item.productId !== undefined && stockMap[item.productId] !== undefined && item.quantity >= (stockMap[item.productId] ?? 0)"
                           @click="cartStore.updateQuantity(item.id, 1)">
                           +
                         </button>

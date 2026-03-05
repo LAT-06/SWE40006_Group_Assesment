@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/apps/server/start.ts",
     "start": "tsx src/apps/server/start.ts",
+    "build": "tsc --noEmit false --outDir dist",
+    "type-check": "tsc --noEmit",
     "test": "vitest"
   },
   "keywords": [],

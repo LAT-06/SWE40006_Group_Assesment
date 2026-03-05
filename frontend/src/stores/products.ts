@@ -62,9 +62,9 @@ export const useProductStore = defineStore("products", () => {
 
       if (err) throw err;
       if (page === 1) {
-        products.value = res as Product[];
+        products.value = res as unknown as Product[];
       } else {
-        products.value = [...products.value, ...(res as Product[])];
+        products.value = [...products.value, ...(res as unknown as Product[])];
       }
     } catch (err: any) {
       console.error("Error fetching products:", err);
