@@ -178,11 +178,7 @@ npm run dev       # Development server at http://localhost:5173
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_JWT_SECRET=your_jwt_secret
-PORT=3000
-ALLOWED_ORIGINS=http://localhost:5173
-ADMIN_EMAILS=admin@example.com
 ```
 
 ### Frontend (`frontend/.env`)
