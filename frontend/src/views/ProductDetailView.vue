@@ -77,6 +77,26 @@ const buyNow = () => {
 
 const switchTab = (tabId: string) => {
   activeTab.value = tabId;
+  if (tabId === 'stores' && storeAvailability.value.length === 0) fetchStoreAvailability();
+};
+
+// ─── Store Availability ───────────────────────────────────────────────────
+const storeAvailability = ref<any[]>([]);
+const storeAvailabilityLoading = ref(false);
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const fetchStoreAvailability = async () => {
+  if (!product.value) return;
+  storeAvailabilityLoading.value = true;
+  try {
+    const res = await fetch(`${API_URL}/products/${product.value.id}/stores`);
+    const json = await res.json();
+    storeAvailability.value = json.data ?? [];
+  } catch {
+    storeAvailability.value = [];
+  } finally {
+    storeAvailabilityLoading.value = false;
+  }
 };
 </script>
 
@@ -192,6 +212,9 @@ const switchTab = (tabId: string) => {
               <div class="tab" :class="{ active: activeTab === 'storage' }" @click="switchTab('storage')">
                 Storage
               </div>
+              <div class="tab" :class="{ active: activeTab === 'stores' }" @click="switchTab('stores')">
+                🏪 Store Availability
+              </div>
             </div>
 
             <div class="tab-content" :class="{ active: activeTab === 'description' }">
@@ -219,6 +242,35 @@ const switchTab = (tabId: string) => {
               <h3>Storage Instructions</h3>
               <p v-if="product?.storage" style="white-space: pre-line;">{{ product.storage }}</p>
               <p v-else style="color:#999;">No storage instructions available.</p>
+            </div>
+
+            <div class="tab-content" :class="{ active: activeTab === 'stores' }">
+              <h3>Store Availability</h3>
+              <p style="color:#999; font-size:14px; margin-bottom:16px;">Check which of our stores currently has this product in stock.</p>
+              <div v-if="storeAvailabilityLoading" style="color:#999; padding:16px 0;">Loading stores…</div>
+              <div v-else-if="storeAvailability.length === 0" style="color:#999;">No store data available yet.</div>
+              <table v-else style="width:100%; border-collapse:collapse; font-size:14px;">
+                <thead>
+                  <tr style="border-bottom:2px solid #eee;">
+                    <th style="text-align:left; padding:8px 12px; font-weight:700;">Store</th>
+                    <th style="text-align:left; padding:8px 12px; font-weight:700;">Address</th>
+                    <th style="text-align:left; padding:8px 12px; font-weight:700;">Phone</th>
+                    <th style="text-align:center; padding:8px 12px; font-weight:700;">Availability</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="s in storeAvailability" :key="s.id" style="border-bottom:1px solid #f0f0f0;">
+                    <td style="padding:10px 12px; font-weight:600;">{{ s.name }}</td>
+                    <td style="padding:10px 12px; color:#555;">{{ s.address }}</td>
+                    <td style="padding:10px 12px; color:#555;">{{ s.phone || '—' }}</td>
+                    <td style="padding:10px 12px; text-align:center;">
+                      <span :style="`display:inline-block; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700; background:${s.in_stock ? '#d4edda' : '#f8d7da'}; color:${s.in_stock ? '#155724' : '#721c24'};`">
+                        {{ s.in_stock ? `✓ In Stock${s.quantity > 0 ? ' (' + s.quantity + ')' : ''}` : '✗ Out of Stock' }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 

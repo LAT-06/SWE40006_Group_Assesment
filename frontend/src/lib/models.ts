@@ -219,6 +219,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          suburbs: string[] | null
         }
         Insert: {
           created_at?: string | null
@@ -226,6 +227,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          suburbs?: string[] | null
         }
         Update: {
           created_at?: string | null
@@ -233,6 +235,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          suburbs?: string[] | null
         }
         Relationships: []
       }
@@ -429,6 +432,69 @@ export type Database = {
           full_name?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      store_inventory: {
+        Row: {
+          id: string
+          store_id: string
+          product_id: string
+          quantity: number
+          in_stock: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          product_id: string
+          quantity?: number
+          in_stock?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          product_id?: string
+          quantity?: number
+          in_stock?: boolean
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      stores: {
+        Row: {
+          id: string
+          name: string
+          address: string
+          phone: string | null
+          email: string | null
+          opening_hours: Json | null
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          address: string
+          phone?: string | null
+          email?: string | null
+          opening_hours?: Json | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          address?: string
+          phone?: string | null
+          email?: string | null
+          opening_hours?: Json | null
+          is_active?: boolean
+          created_at?: string | null
           updated_at?: string | null
         }
         Relationships: []

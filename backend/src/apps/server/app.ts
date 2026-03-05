@@ -5,8 +5,10 @@ import { register as registerCategoryRoute } from "./routes/category.route.js";
 import { register as registerCartRoute } from "./routes/cart.route.js";
 import { register as registerOrderRoute } from "./routes/order.route.js";
 import { register as registerDeliverySlotRoute } from "./routes/delivery_slot.route.js";
+import { register as registerDeliveryZoneRoute } from "./routes/delivery_zone.route.js";
 import { register as registerAdminRoute } from "./routes/admin.route.js";
 import { register as registerPromoRoute } from "./routes/promo.route.js";
+import { register as registerStoreRoute } from "./routes/store.route.js";
 import cors from "cors";
 
 export class Server {
@@ -48,8 +50,10 @@ export class Server {
     registerCartRoute(router);
     registerOrderRoute(router);
     registerDeliverySlotRoute(router);
+    registerDeliveryZoneRoute(router);
     registerAdminRoute(router);
     registerPromoRoute(router);
+    registerStoreRoute(router);
 
     this.app.use(router);
   }

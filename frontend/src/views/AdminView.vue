@@ -571,6 +571,204 @@ const userInitials = (user: AdminUser) => {
   return "?";
 };
 
+// ─── MARK: Stores ────────────────────────────────────────────────────────
+type Store = {
+  id: string;
+  name: string;
+  address: string;
+  phone: string | null;
+  email: string | null;
+  opening_hours: Record<string, string> | null;
+  is_active: boolean;
+  created_at: string | null;
+};
+
+const stores = ref<Store[]>([]);
+const storesLoading = ref(false);
+const storesError = ref<string | null>(null);
+const showStoreModal = ref(false);
+const editingStore = ref<Partial<Store>>({});
+const isEditingStore = ref(false);
+const storeInventoryStore = ref<Store | null>(null);
+const storeInventory = ref<any[]>([]);
+const storeInventoryLoading = ref(false);
+
+const fetchStores = async () => {
+  storesLoading.value = true;
+  storesError.value = null;
+  try {
+    const res = await fetch(`${API_URL}/stores`);
+    const json = await res.json();
+    stores.value = json.data ?? [];
+  } catch (e: any) {
+    storesError.value = e.message;
+  } finally {
+    storesLoading.value = false;
+  }
+};
+
+const openAddStoreModal = () => {
+  isEditingStore.value = false;
+  editingStore.value = { is_active: true };
+  showStoreModal.value = true;
+};
+
+const openEditStoreModal = (s: Store) => {
+  isEditingStore.value = true;
+  editingStore.value = { ...s };
+  showStoreModal.value = true;
+};
+
+const saveStore = async () => {
+  const token = await getToken();
+  if (!token) return;
+  const { id, ...body } = editingStore.value as Store;
+  const url = isEditingStore.value ? `${API_URL}/admin/stores/${id}` : `${API_URL}/admin/stores`;
+  const method = isEditingStore.value ? "PATCH" : "POST";
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { alert("Failed to save store"); return; }
+  showStoreModal.value = false;
+  await fetchStores();
+};
+
+const deleteStore = async (id: string) => {
+  if (!confirm("Delete this store?")) return;
+  const token = await getToken();
+  if (!token) return;
+  await fetch(`${API_URL}/admin/stores/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  await fetchStores();
+};
+
+const openStoreInventory = async (s: Store) => {
+  storeInventoryStore.value = s;
+  storeInventoryLoading.value = true;
+  storeInventory.value = [];
+  // Load all products then merge with inventory
+  const [invRes, prodRes] = await Promise.all([
+    fetch(`${API_URL}/stores/${s.id}/inventory`),
+    fetch(`${API_URL}/products?limit=200`),
+  ]);
+  const invJson = await invRes.json();
+  const prodJson = await prodRes.json();
+  const invMap = new Map((invJson.data ?? []).map((i: any) => [i.product_id, i]));
+  storeInventory.value = (prodJson.data ?? []).map((p: any) => {
+    const inv: any = invMap.get(p.id) ?? {};
+    return { ...p, inv_quantity: inv.quantity ?? 0, inv_in_stock: inv.in_stock ?? false };
+  });
+  storeInventoryLoading.value = false;
+};
+
+const updateStoreInventory = async (productId: string, field: "quantity" | "in_stock", value: any) => {
+  const token = await getToken();
+  if (!token || !storeInventoryStore.value) return;
+  await fetch(`${API_URL}/admin/stores/${storeInventoryStore.value.id}/inventory/${productId}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ [field]: value }),
+  });
+  const idx = storeInventory.value.findIndex((p) => p.id === productId);
+  if (idx !== -1) storeInventory.value[idx][field === "quantity" ? "inv_quantity" : "inv_in_stock"] = value;
+};
+
+// ─── MARK: Delivery Zones ────────────────────────────────────────────────
+type DeliveryZone = {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  suburbs: string[];
+  created_at: string | null;
+};
+
+const zones = ref<DeliveryZone[]>([]);
+const zonesLoading = ref(false);
+const showZoneModal = ref(false);
+const editingZone = ref<Partial<DeliveryZone> & { suburbsText?: string }>({});
+const isEditingZone = ref(false);
+
+const fetchZones = async () => {
+  zonesLoading.value = true;
+  try {
+    const res = await fetch(`${API_URL}/delivery-zones`);
+    const data = await res.json();
+    zones.value = (Array.isArray(data) ? data : data.data ?? []).map((z: any) => ({
+      ...z,
+      suburbs: z.suburbs ?? [],
+    }));
+  } catch (e) {
+    console.error("Failed to fetch zones", e);
+  } finally {
+    zonesLoading.value = false;
+  }
+};
+
+const openAddZoneModal = () => {
+  isEditingZone.value = false;
+  editingZone.value = { is_active: true, suburbs: [], suburbsText: "" };
+  showZoneModal.value = true;
+};
+
+const openEditZoneModal = (z: DeliveryZone) => {
+  isEditingZone.value = true;
+  editingZone.value = { ...z, suburbsText: (z.suburbs ?? []).join(", ") };
+  showZoneModal.value = true;
+};
+
+const saveZone = async () => {
+  const token = await getToken();
+  if (!token) return;
+  const { id, suburbsText, ...rest } = editingZone.value as DeliveryZone & { suburbsText: string };
+  const suburbs = (suburbsText || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const body = { ...rest, suburbs };
+  const url = isEditingZone.value ? `${API_URL}/delivery-zones/${id}` : `${API_URL}/delivery-zones`;
+  const method = isEditingZone.value ? "PATCH" : "POST";
+  const res = await fetch(url, {
+    method,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) { alert("Failed to save zone"); return; }
+  showZoneModal.value = false;
+  await fetchZones();
+};
+
+const toggleZoneActive = async (z: DeliveryZone) => {
+  const token = await getToken();
+  if (!token) return;
+  await fetch(`${API_URL}/delivery-zones/${z.id}`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ is_active: !z.is_active }),
+  });
+  await fetchZones();
+};
+
+const deleteZone = async (id: string) => {
+  if (!confirm("Delete this delivery zone?")) return;
+  const token = await getToken();
+  if (!token) return;
+  const res = await fetch(`${API_URL}/delivery-zones/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    alert(body.error || "Failed to delete zone");
+    return;
+  }
+  await fetchZones();
+};
+
 // ─── MARK: Navigation ────────────────────────────────────────────────────
 const switchSection = async (sectionId: string) => {
   activeSection.value = sectionId;
@@ -585,6 +783,8 @@ const switchSection = async (sectionId: string) => {
     await productStore.fetchProducts();
   } else if (sectionId === "slots") await fetchSlots();
   else if (sectionId === "users") await fetchUsers();
+  else if (sectionId === "stores") await fetchStores();
+  else if (sectionId === "zones") await fetchZones();
 };
 
 const logout = async () => {
@@ -1216,6 +1416,100 @@ onMounted(() => fetchStats());
             </div>
           </section>
 
+          <!-- Delivery Zones Section -->
+          <section v-show="activeSection === 'zones'">
+            <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <h1 class="page-title">Delivery Zones</h1>
+                <p class="page-subtitle">Define which areas you deliver to. Inactive zones will block checkout for customers in those areas.</p>
+              </div>
+              <button class="btn btn-primary" @click="openAddZoneModal">+ Add Zone</button>
+            </div>
+
+            <div v-if="zonesLoading" style="text-align:center; padding:40px; color:#666;">Loading zones…</div>
+            <div v-else class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Zone Name</th>
+                    <th>Description</th>
+                    <th>Covered Areas / Suburbs</th>
+                    <th style="text-align:center;">Status</th>
+                    <th style="text-align:center;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="z in zones" :key="z.id">
+                    <td style="font-weight:700;">{{ z.name }}</td>
+                    <td style="font-size:13px; color:#555; max-width:200px;">{{ z.description || '—' }}</td>
+                    <td>
+                      <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                        <span v-for="suburb in (z.suburbs ?? [])" :key="suburb"
+                          style="display:inline-block; padding:2px 8px; background:#f0f0f0; border-radius:99px; font-size:12px;">
+                          {{ suburb }}
+                        </span>
+                        <span v-if="!z.suburbs?.length" style="font-size:13px; color:#999;">No areas set</span>
+                      </div>
+                    </td>
+                    <td style="text-align:center;">
+                      <button
+                        :style="`display:inline-block; padding:3px 12px; border-radius:99px; font-size:12px; font-weight:700; cursor:pointer; border:none; transition:background .2s; background:${z.is_active ? '#d4edda' : '#f8d7da'}; color:${z.is_active ? '#155724' : '#721c24'};`"
+                        :title="z.is_active ? 'Click to deactivate' : 'Click to activate'"
+                        @click="toggleZoneActive(z)"
+                      >
+                        {{ z.is_active ? '✓ Active' : '✗ Inactive' }}
+                      </button>
+                    </td>
+                    <td style="text-align:center;">
+                      <div style="display:flex; gap:6px; justify-content:center;">
+                        <button class="btn" style="padding:4px 10px; font-size:12px; background:#f0f0f0;" @click="openEditZoneModal(z)">Edit</button>
+                        <button class="btn" style="padding:4px 10px; font-size:12px; background:#ffd5d5; color:#c0392b;" @click="deleteZone(z.id)">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="zones.length === 0">
+                    <td colspan="5" style="text-align:center; padding:30px; color:#999;">No delivery zones yet. Add one!</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Add / Edit Zone Modal -->
+            <div v-if="showZoneModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;" @click.self="showZoneModal=false">
+              <div style="background:white;padding:32px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+                <h2 style="margin:0 0 24px; font-size:20px;">{{ isEditingZone ? 'Edit Zone' : 'Add Zone' }}</h2>
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                  <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Zone Name *</label>
+                    <input v-model="editingZone.name" style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box;" placeholder="e.g. Zone A – City Centre" />
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Description</label>
+                    <input v-model="editingZone.description" style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box;" placeholder="Short description of area covered" />
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Covered Areas / Suburbs</label>
+                    <textarea v-model="editingZone.suburbsText" rows="3"
+                      style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box; resize:vertical;"
+                      placeholder="Comma-separated: District 1, District 3, CBD, Inner City" />
+                    <p style="font-size:12px; color:#999; margin:4px 0 0;">Enter suburb/area names separated by commas. These are matched against customer address selections.</p>
+                  </div>
+                  <div>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
+                      <input type="checkbox" v-model="editingZone.is_active" style="width:16px; height:16px;" />
+                      Zone is active (deliveries available)
+                    </label>
+                    <p v-if="!editingZone.is_active" style="font-size:12px; color:#e74c3c; margin:4px 0 0;">⚠ Customers selecting areas in this zone will see a delivery unavailability notice.</p>
+                  </div>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:28px; justify-content:flex-end;">
+                  <button class="btn btn-secondary" @click="showZoneModal=false">Cancel</button>
+                  <button class="btn btn-primary" @click="saveZone">{{ isEditingZone ? 'Save Changes' : 'Add Zone' }}</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Delivery Slots Section -->
           <section v-show="activeSection === 'slots'">
             <div class="page-header" style="
@@ -1418,6 +1712,158 @@ onMounted(() => fetchStats());
             </div>
           </section>
 
+          <!-- Stores Section -->
+          <section v-show="activeSection === 'stores'">
+            <!-- Store inventory detail view -->
+            <template v-if="storeInventoryStore">
+              <div class="page-header" style="display:flex; align-items:center; gap:16px;">
+                <button class="btn btn-secondary" style="padding:6px 14px; font-size:13px;" @click="storeInventoryStore = null">← Back</button>
+                <div>
+                  <h1 class="page-title">{{ storeInventoryStore.name }} — Inventory</h1>
+                  <p class="page-subtitle">{{ storeInventoryStore.address }}</p>
+                </div>
+              </div>
+              <div v-if="storeInventoryLoading" style="text-align:center; padding:40px; color:#666;">Loading inventory…</div>
+              <div v-else class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Price</th>
+                      <th style="width:120px; text-align:center;">Qty in Store</th>
+                      <th style="width:120px; text-align:center;">In Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in storeInventory" :key="p.id">
+                      <td>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                          <span style="font-size:22px;">{{ p.image_url?.startsWith('http') ? '' : (p.image_url || '📦') }}</span>
+                          <span style="font-weight:600; font-size:14px;">{{ p.name }}</span>
+                        </div>
+                      </td>
+                      <td style="font-size:13px;">${{ p.price?.toFixed(2) }}</td>
+                      <td style="text-align:center;">
+                        <input
+                          type="number"
+                          min="0"
+                          :value="p.inv_quantity"
+                          style="width:70px; padding:4px 8px; border:2px solid var(--stroke); text-align:center; font-family:inherit;"
+                          @change="updateStoreInventory(p.id, 'quantity', Number(($event.target as HTMLInputElement).value))"
+                        />
+                      </td>
+                      <td style="text-align:center;">
+                        <label style="display:inline-flex; align-items:center; cursor:pointer; gap:6px;">
+                          <input
+                            type="checkbox"
+                            :checked="p.inv_in_stock"
+                            @change="updateStoreInventory(p.id, 'in_stock', ($event.target as HTMLInputElement).checked)"
+                            style="width:16px; height:16px; cursor:pointer;"
+                          />
+                          <span style="font-size:12px;" :style="{ color: p.inv_in_stock ? '#00b894' : '#d63031' }">
+                            {{ p.inv_in_stock ? 'In Stock' : 'Out' }}
+                          </span>
+                        </label>
+                      </td>
+                    </tr>
+                    <tr v-if="storeInventory.length === 0">
+                      <td colspan="4" style="text-align:center; padding:30px; color:#999;">No products found.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+
+            <!-- Store list view -->
+            <template v-else>
+              <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <h1 class="page-title">Stores / Warehouses</h1>
+                  <p class="page-subtitle">Manage physical store locations and their stock</p>
+                </div>
+                <button class="btn btn-primary" @click="openAddStoreModal">+ Add Store</button>
+              </div>
+
+              <div v-if="storesLoading" style="text-align:center; padding:40px; color:#666;">Loading stores…</div>
+              <div v-else-if="storesError" style="text-align:center; padding:24px; color:#e74c3c; font-weight:600;">
+                ⚠ {{ storesError }}
+                <button class="btn" style="margin-left:12px;" @click="fetchStores()">Retry</button>
+              </div>
+              <div v-else class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Store Name</th>
+                      <th>Address</th>
+                      <th>Phone</th>
+                      <th style="text-align:center;">Status</th>
+                      <th style="text-align:center;">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="s in stores" :key="s.id">
+                      <td style="font-weight:700;">{{ s.name }}</td>
+                      <td style="font-size:13px; color:#555;">{{ s.address }}</td>
+                      <td style="font-size:13px;">{{ s.phone || '—' }}</td>
+                      <td style="text-align:center;">
+                        <span :style="`display:inline-block; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:600; background:${s.is_active ? '#d4edda' : '#f8d7da'}; color:${s.is_active ? '#155724' : '#721c24'};`">
+                          {{ s.is_active ? 'Active' : 'Inactive' }}
+                        </span>
+                      </td>
+                      <td style="text-align:center;">
+                        <div style="display:flex; gap:6px; justify-content:center;">
+                          <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" @click="openStoreInventory(s)">Inventory</button>
+                          <button class="btn" style="padding:4px 10px; font-size:12px; background:#f0f0f0;" @click="openEditStoreModal(s)">Edit</button>
+                          <button class="btn" style="padding:4px 10px; font-size:12px; background:#ffd5d5; color:#c0392b;" @click="deleteStore(s.id)">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr v-if="stores.length === 0">
+                      <td colspan="5" style="text-align:center; padding:30px; color:#999;">No stores yet. Add one!</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+
+            <!-- Add / Edit Store Modal -->
+            <div v-if="showStoreModal" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:9999;" @click.self="showStoreModal=false">
+              <div style="background:white;padding:32px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+                <h2 style="margin:0 0 24px; font-size:20px;">{{ isEditingStore ? 'Edit Store' : 'Add Store' }}</h2>
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                  <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Store Name *</label>
+                    <input v-model="editingStore.name" style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box;" placeholder="e.g. City Central" />
+                  </div>
+                  <div>
+                    <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Address *</label>
+                    <input v-model="editingStore.address" style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box;" placeholder="123 Main St, Melbourne VIC 3000" />
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div>
+                      <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Phone</label>
+                      <input v-model="editingStore.phone" style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box;" placeholder="+61 3 9000 0001" />
+                    </div>
+                    <div>
+                      <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">Email</label>
+                      <input v-model="editingStore.email" type="email" style="width:100%; padding:8px 12px; border:2px solid var(--stroke); font-family:inherit; box-sizing:border-box;" placeholder="store@example.com" />
+                    </div>
+                  </div>
+                  <div>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
+                      <input type="checkbox" v-model="editingStore.is_active" style="width:16px; height:16px;" />
+                      Store is active (visible to customers)
+                    </label>
+                  </div>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:28px; justify-content:flex-end;">
+                  <button class="btn btn-secondary" @click="showStoreModal=false">Cancel</button>
+                  <button class="btn btn-primary" @click="saveStore">{{ isEditingStore ? 'Save Changes' : 'Add Store' }}</button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <!-- Placeholder for other sections -->
           <section v-show="![
             'dashboard',
@@ -1426,6 +1872,8 @@ onMounted(() => fetchStats());
             'orders',
             'stock',
             'slots',
+            'zones',
+            'stores',
             'users',
           ].includes(activeSection)
             " class="placeholder-section">

@@ -161,18 +161,35 @@
                   </div>
                   <div class="form-row">
                     <div class="form-group">
-                      <label class="form-label">District *</label>
+                      <label class="form-label">Area / Suburb *</label>
                       <select v-model="checkoutForm.district" class="form-select" @change="updateDeliveryZone" required>
-                        <option value="">Select district</option>
-                        <option value="zone-a">District 1</option>
-                        <option value="zone-a">District 3</option>
-                        <option value="zone-a">District 5</option>
-                        <option value="zone-b">District 2</option>
-                        <option value="zone-b">District 7</option>
-                        <option value="zone-b">District 9</option>
-                        <option value="zone-c">District 12</option>
-                        <option value="zone-c">Thu Duc</option>
+                        <option value="">Select your area</option>
+                        <optgroup v-for="z in deliveryZones" :key="z.id" :label="z.name + (z.is_active ? '' : ' (Unavailable)')">
+                          <option v-for="suburb in (z.suburbs ?? [])" :key="suburb" :value="suburb">
+                            {{ suburb }}
+                          </option>
+                        </optgroup>
+                        <optgroup v-if="deliveryZones.length === 0" label="Loading areas…" disabled></optgroup>
                       </select>
+
+                      <!-- Zone availability notice -->
+                      <div v-if="zoneNotice?.type === 'unavailable'"
+                        style="margin-top:8px; padding:12px 14px; background:#fff3cd; border:1px solid #ffc107; border-radius:6px; display:flex; align-items:flex-start; gap:10px;">
+                        <span style="font-size:18px; flex-shrink:0;">⚠️</span>
+                        <div>
+                          <strong style="font-size:13px; color:#856404; display:block;">Delivery not available for this area</strong>
+                          <span style="font-size:13px; color:#856404;">
+                            {{ zoneNotice.zoneName
+                              ? `Sorry, ${zoneNotice.zoneName} is temporarily not accepting deliveries.`
+                              : 'Sorry, we do not currently deliver to this area.' }}
+                            Please select a different area or check back later.
+                          </span>
+                        </div>
+                      </div>
+                      <div v-else-if="zoneNotice?.type === 'ok'"
+                        style="margin-top:8px; padding:8px 12px; background:#d4edda; border:1px solid #28a745; border-radius:6px; font-size:13px; color:#155724;">
+                        ✓ Delivery available · {{ zoneNotice.zoneName }}
+                      </div>
                     </div>
                     <div class="form-group">
                       <label class="form-label">City *</label>
@@ -235,9 +252,12 @@
                   ← Back to Cart
                 </button>
                 <button class="checkout-btn" style="width: auto; display: inline-block; padding: 14px 40px"
-                  :disabled="placingOrder" @click="placeOrder">
+                  :disabled="placingOrder || zoneNotice?.type === 'unavailable'" @click="placeOrder">
                   {{ placingOrder ? "Placing Order…" : "Place Order" }}
                 </button>
+                <p v-if="zoneNotice?.type === 'unavailable'" style="margin-top:8px; font-size:13px; color:#856404; font-weight:600;">
+                  ⚠️ Please select an area we deliver to before placing your order.
+                </p>
               </div>
             </div>
 
@@ -362,7 +382,7 @@ const fillFromAddress = (addr: SavedAddress) => {
   checkoutForm.value.fullName = addr.full_name;
   checkoutForm.value.phone = addr.phone;
   checkoutForm.value.address = addr.address;
-  checkoutForm.value.district = districtToZone[addr.district] || addr.district;
+  checkoutForm.value.district = addr.district;
   updateDeliveryZone();
 };
 interface ApiSlot {
@@ -376,6 +396,31 @@ interface ApiSlot {
   delivery_zones?: { name: string };
 }
 
+// ─── Delivery Zones ──────────────────────────────────────────────────────
+interface ApiZone {
+  id: string;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  suburbs: string[];
+}
+
+const deliveryZones = ref<ApiZone[]>([]);
+const zoneNotice = ref<{ type: 'unavailable' | 'ok'; zoneName: string } | null>(null);
+
+const allSuburbs = computed(() =>
+  deliveryZones.value.flatMap((z) => z.suburbs ?? []).sort()
+);
+
+const fetchDeliveryZones = async () => {
+  try {
+    const res = await fetch(`${API_URL}/delivery-zones`);
+    if (res.ok) deliveryZones.value = await res.json();
+  } catch (e) {
+    console.error('Failed to fetch delivery zones', e);
+  }
+};
+
 const deliverySlots = ref<
   { id: string; time: string; slots: number; available: boolean }[]
 >([]);
@@ -388,79 +433,72 @@ const fetchDeliverySlots = async () => {
     if (res.ok) {
       const data: ApiSlot[] = await res.json();
       deliverySlots.value = data.map((s) => {
-        const date = new Date(s.slot_date).toLocaleDateString("en-US", {
-          weekday: "short",
-          month: "short",
-          day: "numeric",
+        const date = new Date(s.slot_date).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
         });
         const zone = s.delivery_zones?.name
           ? ` · ${s.delivery_zones.name}`
-          : "";
+          : '';
         return {
           id: s.id,
           time: `${date} · ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}${zone}`,
           slots: s.capacity - s.booked,
-          available: s.status === "open" && s.booked < s.capacity,
+          available: s.status === 'open' && s.booked < s.capacity,
         };
       });
     }
   } catch (e) {
-    console.error("Failed to fetch delivery slots", e);
+    console.error('Failed to fetch delivery slots', e);
   } finally {
     slotsLoading.value = false;
   }
 };
 
 onMounted(async () => {
-  await fetchDeliverySlots();
-  await fetchSavedAddresses();
+  await Promise.all([fetchDeliverySlots(), fetchDeliveryZones(), fetchSavedAddresses()]);
 });
 
 const paymentMethods = ref([
   {
-    id: "card",
-    icon: "💳",
-    name: "Credit/Debit Card",
-    description: "Pay securely online",
+    id: 'card',
+    icon: '💳',
+    name: 'Credit/Debit Card',
+    description: 'Pay securely online',
   },
   {
-    id: "google",
-    icon: "🔵",
-    name: "Google Pay",
-    description: "Fast & secure payment",
+    id: 'google',
+    icon: '🔵',
+    name: 'Google Pay',
+    description: 'Fast & secure payment',
   },
   {
-    id: "cash",
-    icon: "💵",
-    name: "Cash on Delivery",
-    description: "Pay when you receive",
+    id: 'cash',
+    icon: '💵',
+    name: 'Cash on Delivery',
+    description: 'Pay when you receive',
   },
 ]);
-
-const districtToZone: Record<string, string> = {
-  "District 1": "zone-a", "District 3": "zone-a", "District 5": "zone-a",
-  "District 2": "zone-b", "District 7": "zone-b", "District 9": "zone-b",
-  "District 12": "zone-c", "Thu Duc": "zone-c",
-};
 
 async function applyPromo() {
   const code = promoCode.value.trim();
   if (!code) return;
   try {
     const res = await fetch(`${API_URL}/promo/validate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, order_total: cartStore.subtotal }),
     });
     const data = await res.json();
     if (!res.ok) {
-      alert(data.error || "Invalid promo code");
+      alert(data.error || 'Invalid promo code');
       return;
     }
     cartStore.applyPromoCode(code, data.discount_amount);
     alert(`Promo applied! You save $${data.discount_amount.toFixed(2)}`);
   } catch {
-    alert("Failed to validate promo code. Try again.");
+    alert('Failed to validate promo code. Try again.');
   }
 }
 
@@ -471,8 +509,23 @@ function proceedToCheckout() {
 }
 
 function updateDeliveryZone() {
-  if (checkoutForm.value.district) {
-    cartStore.updateDeliveryFee(checkoutForm.value.district);
+  const selected = checkoutForm.value.district;
+  zoneNotice.value = null;
+  if (!selected) return;
+
+  // Find which zone covers this suburb
+  const matchedZone = deliveryZones.value.find(
+    (z) => (z.suburbs ?? []).some((s) => s.toLowerCase() === selected.toLowerCase())
+  );
+
+  if (!matchedZone) {
+    // suburb not in any configured zone — treat as unavailable
+    zoneNotice.value = { type: 'unavailable', zoneName: '' };
+  } else if (!matchedZone.is_active) {
+    zoneNotice.value = { type: 'unavailable', zoneName: matchedZone.name };
+  } else {
+    zoneNotice.value = { type: 'ok', zoneName: matchedZone.name };
+    cartStore.updateDeliveryFee(matchedZone.id);
   }
 }
 
@@ -481,6 +534,11 @@ function validateAndContinue() {
 }
 
 async function placeOrder() {
+  if (zoneNotice.value?.type === 'unavailable') {
+    alert('Sorry, we do not deliver to your selected area. Please choose a different area.');
+    return;
+  }
+
   if (
     !checkoutForm.value.fullName ||
     !checkoutForm.value.phone ||
