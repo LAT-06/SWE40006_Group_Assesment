@@ -142,6 +142,10 @@ const filteredProducts = computed(() => {
 const activeFilterTags = computed(() => {
   const tags: Array<{ key: string; label: string; value: any }> = [];
 
+  if (searchQuery.value.trim()) {
+    tags.push({ key: "search", label: `"${searchQuery.value.trim()}"`, value: searchQuery.value });
+  }
+
   filters.value.categories.forEach((catSlug) => {
     tags.push({
       key: "category",
@@ -222,7 +226,9 @@ const toggleBooleanFilter = (type: "inStock" | "onSale") => {
 };
 
 const removeFilter = (key: string, value: any) => {
-  if (key === "category") {
+  if (key === "search") {
+    searchQuery.value = "";
+  } else if (key === "category") {
     const index = filters.value.categories.indexOf(value);
     if (index > -1) filters.value.categories.splice(index, 1);
   } else if (key === "brand") {
@@ -239,6 +245,7 @@ const removeFilter = (key: string, value: any) => {
 };
 
 const clearAllFilters = () => {
+  searchQuery.value = "";
   filters.value = {
     categories: [],
     priceMin: null,
@@ -372,6 +379,23 @@ const goToCart = () => {
                   <option value="name-az">Name: A to Z</option>
                   <option value="newest">Newest First</option>
                 </select>
+              </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="products-search">
+              <div class="products-search-inner">
+                <span class="products-search-icon">🔍</span>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  class="products-search-input"
+                  placeholder="Search products by name…"
+                  @keydown.escape="searchQuery = ''"
+                />
+                <button v-if="searchQuery" class="products-search-clear" @click="searchQuery = ''" title="Clear search">
+                  ×
+                </button>
               </div>
             </div>
 
@@ -651,6 +675,56 @@ const goToCart = () => {
 .products-area {
   background: white;
   border: 3px solid var(--stroke);
+}
+
+.products-search {
+  padding: 14px 24px;
+  border-bottom: 3px solid var(--stroke);
+  background: #fafafa;
+}
+
+.products-search-inner {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.products-search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 16px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.products-search-input {
+  width: 100%;
+  padding: 11px 40px 11px 40px;
+  border: 3px solid var(--stroke);
+  font-size: 15px;
+  background: white;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.products-search-input:focus {
+  border-color: #f582ae;
+}
+
+.products-search-clear {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #999;
+  padding: 0 4px;
+}
+
+.products-search-clear:hover {
+  color: #333;
 }
 
 .products-header {

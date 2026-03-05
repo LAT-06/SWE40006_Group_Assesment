@@ -25,7 +25,7 @@ export class OrderCreateController {
         const productIds = items.map((i: any) => i.product_id).filter(Boolean);
         const { data: products, error: prodError } = await serviceClient
           .from("products")
-          .select("id, price")
+          .select("id, price, quantity, in_stock, name")
           .in("id", productIds);
 
         if (prodError || !products) {
@@ -35,15 +35,34 @@ export class OrderCreateController {
           return;
         }
 
-        const priceMap = new Map(products.map((p: any) => [p.id, p.price]));
+        const productMap = new Map(products.map((p: any) => [p.id, p]));
 
         for (const item of items) {
-          const price = priceMap.get(item.product_id) ?? 0;
-          totalAmount += price * item.quantity;
+          const product = productMap.get(item.product_id);
+          if (!product) continue;
+
+          const available: number = product.quantity ?? 0;
+
+          if (available <= 0) {
+            res.status(httpStatus.BAD_REQUEST).json({
+              error: `"${product.name}" is out of stock.`,
+              product_id: item.product_id,
+              out_of_stock: true,
+            });
+            return;
+          }
+
+          // Clamp to available stock if requested more than we have
+          const quantity = Math.min(item.quantity, available);
+
+          totalAmount += product.price * quantity;
           orderItemsToInsert.push({
             product_id: item.product_id,
-            quantity: item.quantity,
-            price_at_purchase: price,
+            quantity,
+            price_at_purchase: product.price,
+            // Pass back if we had to clamp
+            _requested: item.quantity,
+            _clamped: quantity < item.quantity,
           });
         }
       } else {
@@ -63,7 +82,7 @@ export class OrderCreateController {
 
         const { data: cartItems, error: itemsError } = await serviceClient
           .from("cart_items")
-          .select("quantity, product_id, product:products(price)")
+          .select("quantity, product_id, product:products(price, quantity, in_stock, name)")
           .eq("cart_id", cart.id);
 
         if (itemsError || !cartItems || cartItems.length === 0) {
@@ -73,11 +92,18 @@ export class OrderCreateController {
 
         cartItems.forEach((item: any) => {
           const price = item.product?.price ?? 0;
-          totalAmount += price * item.quantity;
+          const available: number = item.product?.quantity ?? 0;
+
+          if (available <= 0) return; // skip out-of-stock items silently in cart path
+
+          const quantity = Math.min(item.quantity, available);
+          totalAmount += price * quantity;
           orderItemsToInsert.push({
             product_id: item.product_id,
-            quantity: item.quantity,
+            quantity,
             price_at_purchase: price,
+            _requested: item.quantity,
+            _clamped: quantity < item.quantity,
           });
         });
 
@@ -115,10 +141,12 @@ export class OrderCreateController {
         return;
       }
 
-      // Insert order items
+      // Insert order items (strip internal helper fields)
       const itemsWithOrderId = orderItemsToInsert.map((item) => ({
-        ...item,
         order_id: order.id,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        price_at_purchase: item.price_at_purchase,
       }));
       const { error: orderItemsError } = await serviceClient
         .from("order_items")
@@ -131,17 +159,27 @@ export class OrderCreateController {
         return;
       }
 
-      // Deduct stock quantities
+      // Deduct stock quantities atomically via DB function
       for (const item of orderItemsToInsert) {
-        await (serviceClient as any).rpc("decrement_product_quantity", {
+        await serviceClient.rpc("decrement_product_quantity", {
           p_product_id: item.product_id,
           p_amount: item.quantity,
         });
       }
 
-      res
-        .status(httpStatus.CREATED)
-        .json({ order_id: order.id, total_amount: totalAmount });
+      // Inform the client if any quantities were clamped to available stock
+      const clampedItems = orderItemsToInsert
+        .filter((i) => i._clamped)
+        .map((i) => ({ product_id: i.product_id, ordered: i.quantity, requested: i._requested }));
+
+      res.status(httpStatus.CREATED).json({
+        order_id: order.id,
+        total_amount: totalAmount,
+        ...(clampedItems.length > 0 && {
+          notice: "Some item quantities were reduced to match available stock.",
+          adjusted_items: clampedItems,
+        }),
+      });
     } catch (err: any) {
       console.error("OrderCreateController Error:", err);
       res.status(httpStatus.INTERNAL_SERVER_ERROR).json({ error: err.message });

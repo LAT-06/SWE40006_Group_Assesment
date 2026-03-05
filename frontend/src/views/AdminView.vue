@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useProductStore, type Product } from "@/stores/products";
@@ -793,6 +793,20 @@ const logout = async () => {
     router.push("/login");
   }
 };
+
+// ─── Real-time stock subscription ────────────────────────────────────────
+const productStockChannel = supabase
+  .channel("admin-products-stock")
+  .on(
+    "postgres_changes",
+    { event: "UPDATE", schema: "public", table: "products" },
+    () => { productStore.fetchProducts(); }
+  )
+  .subscribe();
+
+onUnmounted(() => {
+  supabase.removeChannel(productStockChannel);
+});
 
 onMounted(() => fetchStats());
 </script>

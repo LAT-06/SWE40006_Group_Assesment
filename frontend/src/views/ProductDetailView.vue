@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useCartStore } from "@/stores/cart";
 import { useProductStore } from "@/stores/products";
@@ -17,9 +17,18 @@ const loading = ref(true);
 const product = ref<any>(null);
 const relatedProducts = ref<any[]>([]);
 
-onMounted(async () => {
-  const id = route.params.id as string;
+const fetchProduct = async (id: string) => {
+  // Clean up any existing stock subscription for the old product
+  if (stockChannel) {
+    await supabase.removeChannel(stockChannel);
+    stockChannel = null;
+  }
   loading.value = true;
+  product.value = null;
+  relatedProducts.value = [];
+  quantity.value = 1;
+  activeTab.value = "description";
+  storeAvailability.value = [];
   try {
     const { data, error } = await supabase
       .from("products")
@@ -29,6 +38,7 @@ onMounted(async () => {
 
     if (error) throw error;
     product.value = data;
+    subscribeToStock(id);
 
     // Fetch related products in same category
     if (data?.category_id) {
@@ -45,13 +55,21 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+};
+
+onMounted(() => fetchProduct(route.params.id as string));
+
+watch(
+  () => route.params.id,
+  (newId) => { if (newId) fetchProduct(newId as string); }
+);
 
 const displayImage = computed(() => product.value?.image_url || "🛒");
 const categoryName = computed(() => product.value?.category?.name || "");
 
 const updateQuantity = (change: number) => {
-  quantity.value = Math.max(1, quantity.value + change);
+  const max = product.value?.quantity ?? Infinity;
+  quantity.value = Math.min(Math.max(1, quantity.value + change), max as number);
 };
 
 const handleAddToCart = () => {
@@ -98,6 +116,33 @@ const fetchStoreAvailability = async () => {
     storeAvailabilityLoading.value = false;
   }
 };
+
+// ─── Real-time stock subscription ────────────────────────────────────────
+let stockChannel: ReturnType<typeof supabase.channel> | null = null;
+
+const subscribeToStock = (productId: string) => {
+  stockChannel = supabase
+    .channel(`product-stock-${productId}`)
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "products", filter: `id=eq.${productId}` },
+      (payload) => {
+        if (product.value) {
+          product.value.quantity = (payload.new as any).quantity ?? product.value.quantity;
+          product.value.in_stock = (payload.new as any).in_stock ?? product.value.in_stock;
+          // Clamp selected quantity to new available stock
+          if (product.value.quantity !== undefined && quantity.value > product.value.quantity) {
+            quantity.value = Math.max(1, product.value.quantity);
+          }
+        }
+      }
+    )
+    .subscribe();
+};
+
+onUnmounted(() => {
+  if (stockChannel) supabase.removeChannel(stockChannel);
+});
 </script>
 
 <template>
@@ -174,28 +219,42 @@ const fetchStoreAvailability = async () => {
 
               <!-- Purchase Box -->
               <div class="purchase-box">
-                <div class="stock-status">
-                  ✓
-                  {{ product.stock_quantity > 0 ? "In Stock" : "Out of Stock" }}
+                <!-- Real-time stock badge -->
+                <div class="stock-status" :style="product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)
+                  ? 'color:#c0392b; background:#fdecea; border-radius:4px; padding:4px 10px; font-weight:700;'
+                  : 'color:#27ae60; background:#eafaf1; border-radius:4px; padding:4px 10px; font-weight:700;'
+                ">
+                  {{ product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)
+                    ? '✗ Out of Stock'
+                    : product.quantity !== undefined && product.quantity <= 10
+                      ? `Low Stock — only ${product.quantity} left`
+                      : '✓ In Stock'
+                  }}
                 </div>
 
-                <div class="quantity-selector">
+                <div v-if="product.in_stock !== false && (product.quantity === undefined || product.quantity > 0)" class="quantity-selector">
                   <label class="quantity-label">Quantity:</label>
                   <div class="quantity-control">
                     <button class="qty-btn minus" @click="updateQuantity(-1)">
                       −
                     </button>
                     <div class="qty-display">{{ quantity }}</div>
-                    <button class="qty-btn plus" @click="updateQuantity(1)">
+                    <button class="qty-btn plus"
+                      :disabled="product.quantity !== undefined && quantity >= product.quantity"
+                      @click="updateQuantity(1)">
                       +
                     </button>
                   </div>
                 </div>
 
-                <button class="add-to-cart-btn" :class="{ added: addedToCart }" @click="handleAddToCart">
+                <button class="add-to-cart-btn" :class="{ added: addedToCart }"
+                  :disabled="product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)"
+                  @click="handleAddToCart">
                   {{ addedToCart ? "✓ Added to Cart!" : "🛒 Add to Cart" }}
                 </button>
-                <button class="buy-now-btn" @click="buyNow">⚡ Buy Now</button>
+                <button class="buy-now-btn"
+                  :disabled="product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)"
+                  @click="buyNow">⚡ Buy Now</button>
               </div>
             </div>
           </div>
@@ -213,7 +272,7 @@ const fetchStoreAvailability = async () => {
                 Storage
               </div>
               <div class="tab" :class="{ active: activeTab === 'stores' }" @click="switchTab('stores')">
-                🏪 Store Availability
+                Store Availability
               </div>
             </div>
 

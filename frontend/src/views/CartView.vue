@@ -35,12 +35,23 @@
               </div>
               <div class="cart-items">
                 <template v-if="cartStore.items.length > 0">
-                  <div v-for="item in cartStore.items" :key="item.id" class="cart-item">
+                  <div v-for="item in cartStore.items" :key="item.id" class="cart-item"
+                    :style="item.productId && stockMap[item.productId] === 0 ? 'opacity:0.65' : ''">
                     <div class="item-image">{{ item.icon }}</div>
                     <div class="item-details">
                       <div class="item-name">{{ item.name }}</div>
                       <div class="item-size">{{ item.size }}</div>
                       <div class="item-price">${{ item.price.toFixed(2) }}</div>
+                      <!-- Out-of-stock badge -->
+                      <div v-if="item.productId && stockMap[item.productId] === 0"
+                        style="margin-top:4px; font-size:12px; font-weight:700; color:#c0392b; background:#fdecea; padding:2px 8px; border-radius:4px; display:inline-block;">
+                        ✗ Out of stock
+                      </div>
+                      <!-- Low / over-stock warning -->
+                      <div v-else-if="item.productId && stockMap[item.productId] !== undefined && item.quantity > stockMap[item.productId]"
+                        style="margin-top:4px; font-size:12px; font-weight:600; color:#856404; background:#fff3cd; padding:2px 8px; border-radius:4px; display:inline-block;">
+                        Only {{ stockMap[item.productId] }} left — your quantity will be adjusted
+                      </div>
                     </div>
                     <div class="item-actions">
                       <div class="quantity-control">
@@ -48,7 +59,9 @@
                           −
                         </button>
                         <div class="qty-display">{{ item.quantity }}</div>
-                        <button class="qty-btn plus" @click="cartStore.updateQuantity(item.id, 1)">
+                        <button class="qty-btn plus"
+                          :disabled="item.productId !== undefined && stockMap[item.productId] !== undefined && item.quantity >= stockMap[item.productId]"
+                          @click="cartStore.updateQuantity(item.id, 1)">
                           +
                         </button>
                       </div>
@@ -112,9 +125,13 @@
                   </div>
                 </div>
 
-                <button class="checkout-btn" :disabled="cartStore.items.length === 0" @click="proceedToCheckout">
+                <button class="checkout-btn" :disabled="cartStore.items.length === 0 || stockProblems.length > 0" @click="proceedToCheckout">
                   Proceed to Checkout
                 </button>
+                <p v-if="stockProblems.length > 0"
+                  style="color:#c0392b; font-size:13px; margin:8px 0 0; font-weight:600;">
+                  Some items exceed available stock. Please update quantities before continuing.
+                </p>
                 <button class="continue-shopping" @click="$router.push('/')">
                   Continue Shopping
                 </button>
@@ -323,6 +340,16 @@
           Thank you for your order! We'll send you a confirmation email shortly.
           You can track your delivery in real-time.
         </p>
+        <!-- Adjusted items notice -->
+        <div v-if="orderAdjustedItems.length > 0"
+          style="background:#fff3cd; border:1px solid #ffc107; padding:12px 16px; border-radius:8px; margin:12px 0; text-align:left;">
+          <p style="font-weight:700; color:#856404; margin:0 0 6px;">⚠️ Some quantities were adjusted to match available stock:</p>
+          <ul style="margin:0; padding-left:18px;">
+            <li v-for="adj in orderAdjustedItems" :key="adj.product_id" style="font-size:13px; color:#856404;">
+              Requested {{ adj.requested }}, ordered {{ adj.ordered }}
+            </li>
+          </ul>
+        </div>
         <button class="checkout-btn" style="margin-bottom: 12px" @click="closeSuccess">
           Track Order
         </button>
@@ -354,6 +381,33 @@ const selectedPayment = ref<string | null>(null);
 const showSuccess = ref(false);
 const orderId = ref<string>("");
 const placingOrder = ref(false);
+const orderAdjustedItems = ref<{ product_id: string; ordered: number; requested: number }[]>([]);
+
+// ─── Stock availability map: productId → available quantity ─────────────
+const stockMap = ref<Record<string, number>>({});
+
+const fetchCartStock = async () => {
+  const productIds = cartStore.items.map((i) => i.productId).filter(Boolean) as string[];
+  if (productIds.length === 0) return;
+  const { data } = await supabase
+    .from("products")
+    .select("id, quantity")
+    .in("id", productIds);
+  if (data) {
+    const map: Record<string, number> = {};
+    data.forEach((p: any) => { map[p.id] = p.quantity ?? 0; });
+    stockMap.value = map;
+  }
+};
+
+// Items in cart that are out-of-stock or over-stock
+const stockProblems = computed(() =>
+  cartStore.items.filter((item) => {
+    if (!item.productId) return false;
+    const avail = stockMap.value[item.productId];
+    return avail !== undefined && avail < item.quantity;
+  })
+);
 
 const checkoutForm = ref({
   fullName: "",
@@ -457,7 +511,7 @@ const fetchDeliverySlots = async () => {
 };
 
 onMounted(async () => {
-  await Promise.all([fetchDeliverySlots(), fetchDeliveryZones(), fetchSavedAddresses()]);
+  await Promise.all([fetchDeliverySlots(), fetchDeliveryZones(), fetchSavedAddresses(), fetchCartStock()]);
 });
 
 const paymentMethods = ref([
@@ -601,9 +655,19 @@ async function placeOrder() {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to place order");
+    if (!res.ok) {
+      // Out-of-stock error from backend
+      if (data.out_of_stock) {
+        alert(`Sorry, "${data.error}" Please update your cart and try again.`);
+        await fetchCartStock();
+        currentStep.value = 1;
+        return;
+      }
+      throw new Error(data.error || "Failed to place order");
+    }
 
     orderId.value = data.order_id;
+    orderAdjustedItems.value = data.adjusted_items ?? [];
     cartStore.clearCart();
     showSuccess.value = true;
   } catch (e: any) {
