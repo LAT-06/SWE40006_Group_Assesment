@@ -240,11 +240,214 @@ To make a user an admin, either:
 
 ---
 
+## CI/CD Pipeline
+
+The project uses **GitHub Actions** for automated testing and deployment. All workflows are in `.github/workflows/`.
+
+```
+Push to any branch
+        │
+        ▼
+┌─────────────────────────────┐
+│   ci.yml — Code Scan        │  ← runs on EVERY push & PR
+│   5 jobs run in parallel:   │
+│   • Frontend Type Check     │
+│   • Frontend Security Audit │
+│   • Backend Type Check      │
+│   • Backend Unit Tests      │
+│   • Backend Security Audit  │
+└─────────────────────────────┘
+
+Push to main / lat  +  backend/** or terraform/** changed
+        │
+        ▼
+┌─────────────────────────────────────────────────────────┐
+│   deploy-backend.yml — Lambda Deploy                    │
+│   1. npm ci                                             │
+│   2. tsc type-check                                     │
+│   3. vitest unit tests                                  │
+│   4. tsc build → dist/                                  │
+│   5. Package Lambda zip (prod deps only, files at root) │
+│   6. Configure AWS credentials                          │
+│   7. terraform init  (S3 remote state)                  │
+│   8. terraform apply (update Lambda + API Gateway)      │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Workflow 1: `ci.yml` — Code Scan
+
+Runs on **every push** to every branch and every pull request. Five jobs run in parallel:
+
+| Job | What it does |
+|---|---|
+| Frontend: Type Check | `vue-tsc --noEmit` — catches TypeScript errors in Vue components |
+| Frontend: Security Audit | `npm audit --audit-level=high` — flags known high/critical CVEs in frontend deps |
+| Backend: Type Check | `tsc --noEmit` — catches TypeScript errors in Express code |
+| Backend: Unit Tests | `vitest --run` — runs all tests in `backend/tests/` |
+| Backend: Security Audit | `npm audit --audit-level=high` — flags known CVEs in backend deps |
+
+> Security audit failures are reported but do **not** block the pipeline (`|| true`) — this lets you see issues without stopping development. Remove `|| true` once all audits are clean.
+
+### Workflow 2: `deploy-backend.yml` — Lambda Deploy
+
+Triggers on push to `main` or `lat` **only when** files under `backend/**`, `terraform/**`, or the workflow itself changed. This avoids unnecessary deploys when only frontend files are edited.
+
+**Steps in detail:**
+
+| Step | Description |
+|---|---|
+| Install | `npm ci` — exact install from `package-lock.json` |
+| Type Check | Fail fast before wasting time building broken code |
+| Unit Tests | Fail fast before deploying broken code |
+| Build | `tsc → dist/` — compiles TypeScript to JavaScript ESM |
+| Package Lambda zip | `cd lambda_pkg && zip -r ../terraform/backend.zip .` — zips from **inside** the directory so `dist/` is at root of zip, matching the Lambda handler path `dist/apps/server/lambda.handler` |
+| Configure AWS | `aws-actions/configure-aws-credentials@v4` using repository secrets |
+| Terraform Init | Initialises with S3 remote state backend (`-backend-config` flags pass bucket/region from secrets) |
+| Terraform Apply | Creates/updates Lambda, API Gateway, S3, CloudFront with `-auto-approve` |
+
+### Frontend Deployment
+
+Frontend is deployed manually by syncing the Vite build output to the S3 bucket and invalidating CloudFront:
+
+```bash
+cd frontend
+npm run build          # outputs to dist/
+aws s3 sync dist/ s3://deployma-frontend --delete
+aws cloudfront create-invalidation \
+  --distribution-id E2CBNE931GJK7K \
+  --paths "/*"
+```
+
+> A GitHub Actions workflow for automated frontend deployment can be added following the same pattern as `deploy-backend.yml`.
+
+---
+
+## Terraform Infrastructure
+
+All AWS infrastructure is defined as code in `terraform/`. The Terraform state is stored remotely in S3 so the whole team can share it.
+
+### Remote State
+
+| Setting | Value |
+|---|---|
+| Backend | S3 |
+| State bucket | `deployma-tf-state-lat` |
+| State key | `deployma/terraform.tfstate` |
+| Region | `ap-southeast-2` |
+
+The `bucket` and `region` values are intentionally **not hard-coded** in `terraform/main.tf` — they are passed via `-backend-config` flags in CI or on first local init:
+
+```bash
+terraform init \
+  -backend-config="bucket=deployma-tf-state-lat" \
+  -backend-config="region=ap-southeast-2"
+```
+
+### Resources Created
+
+| Resource | Name | Purpose |
+|---|---|---|
+| `aws_s3_bucket` | `deployma-lambda-packages` | Stores Lambda deployment zip files |
+| `aws_s3_bucket_versioning` | — | Versioning enabled on Lambda packages bucket |
+| `aws_iam_role` | `deployma-lambda-exec` | IAM execution role for Lambda with basic execution policy |
+| `aws_s3_object` | `backend.zip` | The uploaded Lambda deployment zip |
+| `aws_lambda_function` | `deployma-backend` | Express app running serverless; Node.js 22 ARM64, 256 MB, 30 s timeout |
+| `aws_apigatewayv2_api` | `deployma-api` | HTTP API Gateway (AWS_PROXY integration) |
+| `aws_apigatewayv2_integration` | — | Connects API Gateway to Lambda with payload format v2.0 |
+| `aws_apigatewayv2_route` | `$default` | Catch-all route → passes every request to Lambda |
+| `aws_apigatewayv2_stage` | `$default` | Auto-deploy stage |
+| `aws_lambda_permission` | — | Grants API Gateway permission to invoke Lambda |
+| `aws_s3_bucket` | `deployma-frontend` | Hosts the Vue production build (private) |
+| `aws_s3_bucket_public_access_block` | — | Blocks all public S3 access; traffic only via CloudFront |
+| `aws_cloudfront_origin_access_control` | `deployma-oac` | Sigv4-signed requests from CloudFront to S3 |
+| `aws_cloudfront_distribution` | — | CDN for frontend; redirects HTTP→HTTPS; returns `index.html` for 403/404 (Vue Router history mode) |
+| `aws_s3_bucket_policy` | — | Allows only CloudFront OAC to read from the frontend bucket |
+
+### Lambda Runtime Details
+
+- **Handler**: `dist/apps/server/lambda.handler`  
+  The zip must have `dist/` at its root — this is why the CI packages with `cd lambda_pkg && zip -r ... .` (not `zip -r ... lambda_pkg/`).
+- **Runtime**: `nodejs22.x`, `arm64` (Graviton2 — ~20% cheaper than x86)
+- **Wrapper**: `@vendia/serverless-express` translates API Gateway v2 events to Express `req`/`res` objects
+
+### Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `project_name` | `deployma` | Prefix for all resource names |
+| `aws_region` | `ap-southeast-2` | AWS region |
+| `supabase_url` | *(required)* | Supabase project URL |
+| `supabase_anon_key` | *(required)* | Supabase publishable (anon) API key |
+| `allowed_origins` | `*` | CORS allowed origin — set to your CloudFront domain in production |
+
+### Outputs
+
+After `terraform apply`, these values are printed:
+
+| Output | Value |
+|---|---|
+| `api_url` | API Gateway URL, e.g. `https://4n2hykhdn8.execute-api.ap-southeast-2.amazonaws.com` |
+| `cloudfront_domain` | CloudFront domain, e.g. `d26zvumev4ucx9.cloudfront.net` |
+| `cloudfront_distribution_id` | CloudFront dist ID for cache invalidation |
+| `frontend_bucket` | S3 bucket name for `aws s3 sync` |
+
+### First Deploy (local)
+
+```bash
+# 1. Build the backend
+cd backend && npm run build
+
+# 2. Package Lambda zip (files must be at root of zip)
+rm -rf lambda_pkg && mkdir lambda_pkg
+cp -r dist/ lambda_pkg/dist && cp package.json lambda_pkg/
+cd lambda_pkg && npm install --omit=dev --ignore-scripts
+zip -r ../terraform/backend.zip .
+cd .. && rm -rf lambda_pkg
+
+# 3. Initialise Terraform with remote state
+cd ../terraform
+terraform init \
+  -backend-config="bucket=YOUR_TF_STATE_BUCKET" \
+  -backend-config="region=ap-southeast-2"
+
+# 4. Apply (will prompt for confirmation)
+terraform apply \
+  -var="supabase_url=https://yourproject.supabase.co" \
+  -var="supabase_anon_key=YOUR_ANON_KEY" \
+  -var="allowed_origins=*"
+
+# 5. After first apply, re-apply with the real CloudFront domain
+terraform apply \
+  -var="supabase_url=https://yourproject.supabase.co" \
+  -var="supabase_anon_key=YOUR_ANON_KEY" \
+  -var="allowed_origins=https://YOUR_CLOUDFRONT_DOMAIN"
+```
+
+---
+
+## GitHub Secrets
+
+Add these under **Settings → Secrets and variables → Actions → Secrets** (not Variables):
+
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | IAM user access key with permissions for Lambda, API Gateway, S3, CloudFront, IAM |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret key |
+| `AWS_REGION` | AWS region, e.g. `ap-southeast-2` |
+| `TF_STATE_BUCKET` | S3 bucket name storing Terraform state, e.g. `deployma-tf-state-lat` |
+| `SUPABASE_URL` | Your Supabase project URL |
+| `SUPABASE_ANON_KEY` | Supabase publishable (anon) key |
+| `CLOUDFRONT_DOMAIN` | CloudFront domain without `https://`, e.g. `d26zvumev4ucx9.cloudfront.net` — set this after the first deploy |
+
+> **Important**: all values must be in the **Secrets** tab, not the Variables tab. Variables are not masked in logs and are not injected into `${{ secrets.* }}` expressions.
+
+---
+
 ## Troubleshooting
 
 **Login / OAuth not working**
 - Check Supabase credentials in both `.env` files
-- For Google OAuth: enable Google provider in Supabase Dashboard → Authentication → Providers, add redirect URL `http://localhost:5173/`
+- For Google OAuth: enable Google provider in Supabase Dashboard → Authentication → Providers, add redirect URLs `http://localhost:5173/auth/callback` (local) and `https://YOUR_CLOUDFRONT_DOMAIN/auth/callback` (production), and set Site URL to your CloudFront domain
 
 **Orders not placing / stock not updating**
 - Ensure all migrations have been run, especially `20260305040000_product_stock_management.sql`
@@ -253,237 +456,20 @@ To make a user an admin, either:
 **Real-time not working**
 - Supabase Realtime must be enabled for the `products` table — Dashboard → Database → Replication
 
+**CORS errors from deployed frontend**
+- Confirm `allowed_origins` in Terraform is set to your exact CloudFront domain (e.g. `https://d26zvumev4ucx9.cloudfront.net`), not `*`
+- Re-run `terraform apply -var="allowed_origins=https://YOUR_CLOUDFRONT_DOMAIN"` if it was deployed with the wildcard default
+
+**Lambda 500 errors (admin routes)**
+- Check Lambda logs: `aws logs tail /aws/lambda/deployma-backend --since 5m --region ap-southeast-2`
+- Confirm `SUPABASE_URL` is set correctly in Lambda environment (Terraform variable `supabase_url`)
+- JWT verification uses the Supabase JWKS endpoint — Lambda needs outbound internet access (no VPC restriction)
+
+**`Cannot find module 'lambda'` in Lambda logs**
+- The Lambda zip was built incorrectly — files must be at the root of the zip, not inside a subdirectory
+- Package with: `cd lambda_pkg && zip -r ../../terraform/backend.zip .` (note: `cd` first, then zip `.`)
+
 ---
-
-## License
-
-MIT
-
-- User authentication with email/password and Google OAuth
-- User session persistence (stay logged in on refresh)
-- Role-based access control (Admin portal)
-- Admin dashboard for managing products, orders, delivery zones, and more
-- Modern, responsive UI with custom design system
-
-## Tech Stack
-
-### Frontend
-
-- **Vue 3** with Composition API
-- **TypeScript** for type safety
-- **Pinia** for state management
-- **Vue Router** for navigation with auth guards
-- **Supabase** for authentication and database
-- **Vite** for fast development
-
-### Backend
-
-- **Node.js** with **Express**
-- **TypeScript** (ES Modules)
-- **Supabase** for backend services
-- **tsx** for TypeScript execution
-
-## Setup Instructions
-
-### 1. Supabase Configuration
-
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Enable Google OAuth:
-   - Go to Authentication > Providers
-   - Enable Google provider
-   - Add your Google OAuth credentials
-   - Set redirect URL: `http://localhost:5173/`
-
-3. Get your Supabase credentials:
-   - Project URL
-   - Anon Key
-   - Service Role Key (for backend)
-
-### 2. Backend Setup
-
-```bash
-cd backend
-
-# Install dependencies
-npm install
-
-# Create .env file from example
-cp .env.example .env
-
-# Edit .env and fill in your Supabase credentials:
-# SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY,
-# SUPABASE_JWT_SECRET, PORT, ALLOWED_ORIGINS, ADMIN_EMAILS
-
-# Start development server
-npm run dev
-```
-
-The backend will run at `http://localhost:3000`
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Create .env file from example
-cp .env.example .env
-
-# Edit .env and fill in your Supabase credentials:
-# VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_API_URL
-
-# Start development server
-npm run dev
-```
-
-The frontend will run at `http://localhost:5173`
-
-## Usage
-
-### User Accounts
-
-**Regular User:**
-
-- Sign up with any email
-- Login and browse products
-- Add items to cart
-
-**Admin User:**
-
-- Sign up with an email containing "admin" (e.g., `admin@example.com`)
-- Access admin portal at `/admin`
-- Manage products, orders, delivery zones, etc.
-
-### Authentication Flow
-
-1. **Sign Up**: Create account with email/password or Google OAuth
-2. **Sign In**: Login with credentials or Google
-3. **Session Persistence**: Stay logged in on browser refresh
-4. **Role-Based Access**: Admin users automatically get access to admin portal
-
-### Routes
-
-- `/` - Homepage (grocery platform)
-- `/login` - Login/Signup page
-- `/admin` - Admin portal (requires admin role)
-- `/about` - About page
-
-## Project Structure
-
-```
-.
-├── backend/
-│   ├── src/
-│   │   ├── apps/server/
-│   │   │   ├── controllers/
-│   │   │   ├── routes/
-│   │   │   ├── app.ts
-│   │   │   └── start.ts
-│   │   └── Contexts/Shared/infrastructure/persistence/supabase/
-│   │       └── SupabaseClientFactory.ts
-│   ├── package.json
-│   └── tsconfig.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── views/
-│   │   │   ├── HomeView.vue (Main grocery page)
-│   │   │   ├── LoginView.vue (Auth page)
-│   │   │   └── AdminView.vue (Admin portal)
-│   │   ├── stores/
-│   │   │   └── auth.ts (Authentication store)
-│   │   ├── lib/
-│   │   │   └── supabase.ts (Supabase client)
-│   │   ├── router/
-│   │   │   └── index.ts (Router with auth guards)
-│   │   ├── App.vue
-│   │   └── main.ts
-│   ├── package.json
-│   └── vite.config.ts
-│
-└── infrastructure/
-```
-
-## Key Features Explained
-
-### Session Persistence
-
-- Supabase automatically stores session in localStorage
-- App.vue initializes auth store on mount
-- Sessions persist across browser refreshes
-- Auto-refreshes tokens when expired
-
-### Role-Based Access
-
-- Admin detection based on email containing "admin"
-- Navigation guards protect admin routes
-- Automatic redirect if unauthorized
-
-### OAuth Integration
-
-- Google OAuth configured in Supabase
-- Click "Continue with Google" button
-- Automatic account creation/login
-- Session persisted same as email/password
-
-## Development Commands
-
-### Backend
-
-```bash
-npm run dev      # Start development server with watch mode
-npm run start    # Start production server
-```
-
-### Frontend
-
-```bash
-npm run dev      # Start development server
-npm run build    # Build for production
-npm run preview  # Preview production build
-```
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-
-```env
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your_anon_key_here
-SUPABASE_JWT_SECRET=your_jwt_secret_here
-```
-
-### Frontend (`frontend/.env`)
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
-VITE_API_URL=http://localhost:3000
-```
-
-## Troubleshooting
-
-### Can't Login/Signup
-
-- Check Supabase credentials in .env files
-- Verify Supabase project is active
-- Check browser console for errors
-
-### OAuth Not Working
-
-- Verify Google OAuth is enabled in Supabase
-- Check redirect URL is correct
-- Ensure using http://localhost (not 127.0.0.1)
-
-### Session Not Persisting
-
-- Check browser localStorage is enabled
-- Verify Supabase client configuration
-- Check auth store initialization in App.vue
-
 
 ## License
 
