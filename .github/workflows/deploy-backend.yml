@@ -1,0 +1,79 @@
+name: Deploy Backend
+
+# Triggers on push to lat (testing) and main (production)
+# Remove 'lat' once you've confirmed the pipeline works
+on:
+  push:
+    branches: [main, lat]
+    paths:
+      - "backend/**"
+      - "terraform/**"
+      - ".github/workflows/deploy-backend.yml"
+
+jobs:
+  deploy:
+    name: Build, Package & Deploy → Lambda via Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install
+        working-directory: backend
+        run: npm ci
+
+      - name: Type Check
+        working-directory: backend
+        run: npm run type-check
+
+      - name: Unit Tests
+        working-directory: backend
+        run: npm test -- --run
+
+      - name: Build (tsc → dist/)
+        working-directory: backend
+        run: npm run build
+
+      - name: Package Lambda zip
+        working-directory: backend
+        run: |
+          rm -rf lambda_pkg
+          mkdir -p lambda_pkg
+          cp -r dist/ lambda_pkg/dist
+          cp package.json lambda_pkg/
+          cd lambda_pkg && npm install --omit=dev --ignore-scripts && cd ..
+          zip -r ../terraform/backend.zip lambda_pkg/
+          rm -rf lambda_pkg
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
+            -backend-config="region=${{ secrets.AWS_REGION }}"
+
+      - name: Terraform Apply
+        working-directory: terraform
+        env:
+          TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
+          TF_VAR_supabase_anon_key: ${{ secrets.SUPABASE_ANON_KEY }}
+          TF_VAR_supabase_service_role_key: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TF_VAR_supabase_jwt_secret: ${{ secrets.SUPABASE_JWT_SECRET }}
+          TF_VAR_allowed_origins: "https://${{ secrets.CLOUDFRONT_DOMAIN }}"
+        run: terraform apply -auto-approve
