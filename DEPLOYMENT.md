@@ -1,6 +1,6 @@
 # AWS Serverless Deployment + CI/CD Guide
 
-Deploying Deployma on AWS with near-zero cost using serverless infrastructure and automated GitHub Actions pipelines.
+Deploying Deployma on AWS with near-zero cost using serverless infrastructure and a Jenkins pipeline running on your home server.
 
 ---
 
@@ -96,32 +96,119 @@ terraform -chdir=terraform output api_url             # your backend URL
 
 ---
 
-## Part 3 — CI/CD with GitHub Actions
+## Part 3 — CI/CD with Jenkins (Home Server)
 
-### 3.1 Add secrets to GitHub
+The `Jenkinsfile` at the repo root drives all pipelines. It runs CI checks on every branch and deploys only when on `main`.
 
-Go to your repo → **Settings → Secrets and variables → Actions → New repository secret**:
+### 3.1 Install Jenkins on your home server
 
-| Secret name | Value |
+**Option A — Docker (recommended)**
+```bash
+docker run -d \
+  --name jenkins \
+  -p 8080:8080 -p 50000:50000 \
+  -v jenkins_home:/var/jenkins_home \
+  jenkins/jenkins:lts
+# Get the one-time admin password:
+docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+**Option B — Native (Ubuntu/Debian)**
+```bash
+sudo apt install -y openjdk-17-jdk
+curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key \
+  | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian binary/" \
+  | sudo tee /etc/apt/sources.list.d/jenkins.list
+sudo apt update && sudo apt install -y jenkins
+```
+
+### 3.2 Install required tools on the Jenkins host
+
+Jenkins runs build commands directly on the host — these must be present:
+
+```bash
+# Node.js 22
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Terraform
+sudo apt install -y gnupg software-properties-common
+wget -O- https://apt.releases.hashicorp.com/gpg \
+  | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+  https://apt.releases.hashicorp.com $(lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install -y terraform
+
+# AWS CLI
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o awscliv2.zip
+unzip awscliv2.zip && sudo ./aws/install
+```
+
+### 3.3 Expose Jenkins so GitHub can send webhooks
+
+GitHub needs to reach your home server. Choose one:
+
+**Option A — Cloudflare Tunnel (free, no port forwarding)**
+```bash
+# Install cloudflared
+curl -L -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared.deb
+# Start a quick tunnel (returns a public HTTPS URL)
+cloudflared tunnel --url http://localhost:8080
+```
+
+**Option B — ngrok**
+```bash
+ngrok http 8080
+# Returns https://xxxx.ngrok-free.app
+```
+
+**Option C — Router port forwarding**
+Forward external TCP port 8080 → your server's LAN IP:8080. Use DuckDNS (free) for a stable hostname if you don't have a static IP.
+
+**Fallback — Poll SCM** (no exposure needed)
+In the Jenkins job → Build Triggers → **Poll SCM** → schedule `H/1 * * * *`. Jenkins checks GitHub every minute without needing an inbound connection.
+
+### 3.4 Install Jenkins plugins
+
+**Dashboard → Manage Jenkins → Plugins → Available plugins** — install:
+
+| Plugin | Purpose |
 |---|---|
-| `AWS_ACCESS_KEY_ID` | IAM user access key |
-| `AWS_SECRET_ACCESS_KEY` | IAM user secret key |
-| `AWS_REGION` | e.g. `ap-southeast-2` |
-| `S3_BUCKET` | your frontend bucket name |
-| `CLOUDFRONT_DISTRIBUTION_ID` | from CloudFront console |
-| `VITE_SUPABASE_URL` | your Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
-| `VITE_API_URL` | API Gateway URL from SAM output |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `SUPABASE_JWT_SECRET` | Supabase JWT secret |
-| `TF_STATE_BUCKET` | Name of the S3 bucket used for Terraform remote state (created in Part 5) |
-| `CLOUDFRONT_DOMAIN` | CloudFront domain after first `terraform apply` (e.g. `d1234.cloudfront.net`) |
+| **Git** | Clone the repo |
+| **Pipeline** | Declarative `Jenkinsfile` support |
+| **GitHub** | Webhook trigger integration |
+| **Credentials Binding** | Inject secrets into pipeline steps |
+| **Workspace Cleanup** | `cleanWs()` in post block |
 
-### 3.2 IAM user permissions
+### 3.5 Add credentials to Jenkins
 
-Create a dedicated IAM user for GitHub Actions with this policy (least-privilege):
+**Dashboard → Manage Jenkins → Credentials → (global) → Add Credential**
+Type: **Secret text** for all entries.
+
+| Credential ID | Value |
+|---|---|
+| `aws-access-key-id` | IAM user access key |
+| `aws-secret-access-key` | IAM user secret key |
+| `aws-region` | e.g. `ap-southeast-2` |
+| `s3-bucket` | frontend bucket name (from `terraform output frontend_bucket`) |
+| `cloudfront-distribution-id` | from `terraform output cloudfront_distribution_id` |
+| `cloudfront-domain` | e.g. `d1234.cloudfront.net` (from `terraform output cloudfront_domain`) |
+| `vite-supabase-url` | Supabase project URL |
+| `vite-supabase-anon-key` | Supabase anon key |
+| `vite-api-url` | API Gateway URL (from `terraform output api_url`) |
+| `supabase-url` | Supabase project URL |
+| `supabase-anon-key` | Supabase anon key |
+| `supabase-service-role-key` | Supabase service role key |
+| `supabase-jwt-secret` | Supabase JWT secret |
+| `tf-state-bucket` | S3 bucket for Terraform remote state (from Part 5.2) |
+
+### 3.6 IAM user permissions for Jenkins
+
+Create a dedicated IAM user for Jenkins with this least-privilege policy (AWS Console → IAM → Users → Create user → Attach policy directly → JSON):
 
 ```json
 {
@@ -134,8 +221,10 @@ Create a dedicated IAM user for GitHub Actions with this policy (least-privilege
         "s3:ListBucket", "s3:PutObjectAcl"
       ],
       "Resource": [
-        "arn:aws:s3:::deployma-frontend-YOUR_BUCKET_NAME",
-        "arn:aws:s3:::deployma-frontend-YOUR_BUCKET_NAME/*"
+        "arn:aws:s3:::YOUR_FRONTEND_BUCKET_NAME",
+        "arn:aws:s3:::YOUR_FRONTEND_BUCKET_NAME/*",
+        "arn:aws:s3:::YOUR_TF_STATE_BUCKET_NAME",
+        "arn:aws:s3:::YOUR_TF_STATE_BUCKET_NAME/*"
       ]
     },
     {
@@ -146,17 +235,12 @@ Create a dedicated IAM user for GitHub Actions with this policy (least-privilege
     {
       "Effect": "Allow",
       "Action": [
-        "cloudformation:*",
         "lambda:*",
         "apigateway:*",
-        "iam:PassRole",
-        "iam:GetRole",
-        "iam:CreateRole",
-        "iam:AttachRolePolicy",
-        "iam:DetachRolePolicy",
-        "iam:DeleteRole",
-        "s3:CreateBucket",
-        "s3:PutBucketVersioning"
+        "iam:PassRole", "iam:GetRole",
+        "iam:CreateRole", "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy", "iam:DeleteRole",
+        "s3:CreateBucket", "s3:PutBucketVersioning"
       ],
       "Resource": "*"
     }
@@ -164,243 +248,78 @@ Create a dedicated IAM user for GitHub Actions with this policy (least-privilege
 }
 ```
 
-### 3.3 Frontend CI/CD workflow
+### 3.7 Create the Jenkins pipeline job
 
-Create `.github/workflows/deploy-frontend.yml`:
+1. **Dashboard → New Item → Multibranch Pipeline** → name it `deployma`
+   *(Multibranch lets CI checks run on PRs while deploys only fire on `main`)*
+2. **Branch Sources → Add source → GitHub**
+   - Credentials: add a GitHub Personal Access Token
+   - Repository HTTPS URL: your GitHub repo URL
+3. **Build Configuration → Mode**: by Jenkinsfile
+4. **Script Path**: `Jenkinsfile` *(default — already at repo root)*
+5. **Scan Multibranch Pipeline Triggers**: check **Periodically if not otherwise run** → interval `1 minute` (fallback scan)
+6. Save → Jenkins will scan the repo and create a pipeline for `main` automatically.
 
-```yaml
-name: Deploy Frontend
+### 3.8 Add GitHub webhook
 
-on:
-  push:
-    branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/deploy-frontend.yml"
+In your GitHub repo → **Settings → Webhooks → Add webhook**:
 
-jobs:
-  deploy:
-    name: Build & Deploy to S3 + CloudFront
-    runs-on: ubuntu-latest
+| Field | Value |
+|---|---|
+| Payload URL | `https://YOUR_JENKINS_URL/multibranch-webhook-trigger/invoke?token=deployma` |
+| Content type | `application/json` |
+| Trigger | Just the **push** event |
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build
-        working-directory: frontend
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-        run: npm run build
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Sync to S3
-        run: |
-          # Upload all assets with long cache (content-hashed filenames)
-          aws s3 sync frontend/dist/assets s3://${{ secrets.S3_BUCKET }}/assets \
-            --cache-control "public, max-age=31536000, immutable" \
-            --delete
-
-          # Upload HTML files with no cache (always fresh)
-          aws s3 sync frontend/dist s3://${{ secrets.S3_BUCKET }} \
-            --exclude "assets/*" \
-            --cache-control "no-cache, no-store, must-revalidate" \
-            --delete
-
-      - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
-```
-
-### 3.4 Backend CI/CD workflow
-
-Create `.github/workflows/deploy-backend.yml`:
-
-```yaml
-name: Deploy Backend
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/deploy-backend.yml"
-
-jobs:
-  deploy:
-    name: Build & Deploy to Lambda
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: backend
-        run: npm ci
-
-      - name: Type-check
-        working-directory: backend
-        run: npm run type-check
-
-      - name: Run tests
-        working-directory: backend
-        run: npm test -- --run
-
-      - name: Build
-        working-directory: backend
-        run: npm run build
-
-      - name: Package Lambda
-        working-directory: backend
-        run: |
-          mkdir -p lambda_pkg
-          cp -r dist/ lambda_pkg/dist
-          cp package.json lambda_pkg/
-          cd lambda_pkg && npm install --omit=dev --ignore-scripts && cd ..
-          zip -r ../terraform/backend.zip lambda_pkg/
-          rm -rf lambda_pkg
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      - name: Terraform Init
-        working-directory: terraform
-        run: |
-          terraform init \
-            -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" \
-            -backend-config="region=${{ secrets.AWS_REGION }}"
-
-      - name: Terraform Apply
-        working-directory: terraform
-        env:
-          TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
-          TF_VAR_supabase_anon_key: ${{ secrets.SUPABASE_ANON_KEY }}
-          TF_VAR_supabase_service_role_key: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TF_VAR_supabase_jwt_secret: ${{ secrets.SUPABASE_JWT_SECRET }}
-          TF_VAR_allowed_origins: "https://${{ secrets.CLOUDFRONT_DOMAIN }}"
-        run: terraform apply -auto-approve
-```
-
-### 3.5 Combined PR check workflow (runs on every PR, no deploy)
-
-Create `.github/workflows/ci.yml`:
-
-```yaml
-name: CI Checks
-
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  frontend:
-    name: Frontend — type-check + build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-        working-directory: frontend
-      - run: npm run build
-        working-directory: frontend
-        env:
-          VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: placeholder
-          VITE_API_URL: http://localhost:3000
-
-  backend:
-    name: Backend — type-check + test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: backend/package-lock.json
-      - run: npm ci
-        working-directory: backend
-      - run: npm run type-check
-        working-directory: backend
-      - run: npm test -- --run
-        working-directory: backend
-```
+> Install the **Multibranch Scan Webhook Trigger** plugin first, or use the simpler payload URL `https://YOUR_JENKINS_URL/github-webhook/` with the **GitHub** plugin.
 
 ---
 
 ## Part 4 — Full Deployment Flow
 
 ```
-Developer pushes to main
+Git push to any branch
          │
-         ├──[frontend/** changed]──► GitHub Actions: deploy-frontend.yml
-         │                               1. npm ci
-         │                               2. npm run build  (Vite bundles to dist/)
-         │                               3. aws s3 sync    (assets + HTML to S3)
-         │                               4. CloudFront invalidation  (cache busted)
-         │                               └─► Live at https://d1234.cloudfront.net
+         ├── Stage 1: Install        (parallel: frontend + backend npm ci)
          │
-         └──[backend/** changed]───► GitHub Actions: deploy-backend.yml
-                                         1. npm ci
-                                         2. tsc --noEmit   (type-check)
-                                         3. vitest --run   (tests)
-                                         4. npm run build  (tsc → dist/)
-                                         5. zip dist/ + node_modules (Lambda package)
-                                         6. terraform apply (update Lambda + API Gateway)
-                                         └─► Live at https://xxxx.execute-api.region.amazonaws.com
+         ├── Stage 2: Code Scan      (parallel — runs on ALL branches)
+         │         ├── Frontend: Type Check     (vue-tsc --build)
+         │         ├── Frontend: Security Audit (npm audit --audit-level=high)
+         │         ├── Backend:  Type Check     (tsc --noEmit)
+         │         ├── Backend:  Unit Tests     (vitest --run)
+         │         └── Backend:  Security Audit (npm audit --audit-level=high)
+         │
+         │   ✖ Any failure above → pipeline stops, no deploy
+         │
+         ├── Stage 3: Build          (when: branch = main only)
+         │         ├── Frontend: Vite build  → dist/
+         │         └── Backend:  tsc build   → dist/
+         │
+         ├── Stage 4: Package Lambda (when: branch = main)
+         │         zip dist/ + prod node_modules → terraform/backend.zip
+         │
+         ├── Stage 5: Deploy Frontend (when: branch = main)
+         │         1. aws s3 sync assets  → 1-year immutable cache
+         │         2. aws s3 sync HTML    → no-cache
+         │         3. CloudFront cache invalidation
+         │         └─► Live at https://d1234.cloudfront.net
+         │
+         └── Stage 6: Deploy Backend  (when: branch = main)
+                   1. terraform init  (pull shared state from S3)
+                   2. terraform apply (update Lambda code + API Gateway)
+                   └─► Live at https://xxxx.execute-api.region.amazonaws.com
 ```
 
-### On a Pull Request (no deploy)
+### On a feature branch / PR (scan only, no deploy)
 
 ```
-PR opened / commit pushed to PR branch
+Push to feature-branch / PR
          │
-         └──► GitHub Actions: ci.yml
-                  ├── frontend: type-check + build (with placeholder env vars)
-                  └── backend:  type-check + tests
-                  
-              All green → PR can be merged
-              Any failure → blocks merge
+         ├── Stage 1: Install
+         ├── Stage 2: Code Scan  ← all 5 checks run in parallel
+         └── Stages 3–6 SKIPPED  (when { branch 'main' } not satisfied)
+
+         All green → safe to merge
+         Any failure → blocks merge
 ```
 
 ---
@@ -514,7 +433,7 @@ terraform -chdir=terraform output cloudfront_distribution_id  # → CLOUDFRONT_D
 terraform -chdir=terraform output frontend_bucket          # S3 bucket name → S3_BUCKET
 ```
 
-Update GitHub secrets with these values after the first deploy. On subsequent `terraform apply` runs (code changes only), the values stay the same.
+Update the Jenkins credentials with these values after the first deploy. On subsequent `terraform apply` runs (code changes only), the values stay the same.
 
 ---
 
