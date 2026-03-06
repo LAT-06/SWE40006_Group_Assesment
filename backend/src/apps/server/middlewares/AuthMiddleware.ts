@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import httpStatus from "http-status";
-import { decodeJwt, jwtVerify } from "jose";
+import { createRemoteJWKSet, decodeJwt, jwtVerify } from "jose";
 
 // Extend Express Request to include user and raw token
 declare global {
@@ -17,6 +17,9 @@ export const AuthMiddleware = async (
   res: Response,
   next: () => void,
 ) => {
+  // Allow CORS preflight through without auth check
+  if (req.method === "OPTIONS") return next();
+
   try {
     const authHeader = req.headers.authorization;
 

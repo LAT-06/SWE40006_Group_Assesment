@@ -80,10 +80,10 @@ resource "aws_lambda_function" "backend" {
 
   environment {
     variables = {
-      SUPABASE_URL    = var.supabase_url
+      SUPABASE_URL      = var.supabase_url
       SUPABASE_ANON_KEY = var.supabase_anon_key
       ALLOWED_ORIGINS   = var.allowed_origins
-      NODE_ENV                  = "production"
+      NODE_ENV          = "production"
     }
   }
 }
@@ -93,13 +93,6 @@ resource "aws_lambda_function" "backend" {
 resource "aws_apigatewayv2_api" "backend" {
   name          = "${var.project_name}-api"
   protocol_type = "HTTP"
-
-  cors_configuration {
-    allow_origins = [var.allowed_origins]
-    allow_methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
-    allow_headers = ["Content-Type", "Authorization", "X-Requested-With"]
-    max_age       = 86400
-  }
 }
 
 resource "aws_apigatewayv2_integration" "backend" {
