@@ -36,6 +36,14 @@ export class Server {
       }),
     );
 
+    // Respond to all OPTIONS preflight requests before any route-level auth middleware
+    this.app.options("*", cors({
+      origin: allowedOrigins,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+      credentials: !isWildcard,
+    }));
+
     // Middlewares
     this.app.use(express.json());
 

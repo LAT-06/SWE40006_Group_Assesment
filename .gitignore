@@ -98,3 +98,5 @@ credentials
 debug/
 .vscode-test/
 .gemini/
+
+lambda.zip
