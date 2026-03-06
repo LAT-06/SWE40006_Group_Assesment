@@ -160,11 +160,9 @@ pipeline {
                     string(credentialsId: 'aws-secret-access-key',       variable: 'AWS_SECRET_ACCESS_KEY'),
                     string(credentialsId: 'aws-region',                  variable: 'AWS_DEFAULT_REGION'),
                     string(credentialsId: 'tf-state-bucket',             variable: 'TF_STATE_BUCKET'),
-                    string(credentialsId: 'supabase-url',                variable: 'TF_VAR_supabase_url'),
-                    string(credentialsId: 'supabase-anon-key',           variable: 'TF_VAR_supabase_anon_key'),
-                    string(credentialsId: 'supabase-service-role-key',   variable: 'TF_VAR_supabase_service_role_key'),
-                    string(credentialsId: 'supabase-jwt-secret',         variable: 'TF_VAR_supabase_jwt_secret'),
-                    string(credentialsId: 'cloudfront-domain',           variable: 'CLOUDFRONT_DOMAIN')
+                    string(credentialsId: 'supabase-url',      variable: 'TF_VAR_supabase_url'),
+                    string(credentialsId: 'supabase-anon-key', variable: 'TF_VAR_supabase_anon_key'),
+                    string(credentialsId: 'cloudfront-domain', variable: 'CLOUDFRONT_DOMAIN')
                 ]) {
                     dir('terraform') {
                         sh '''

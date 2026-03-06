@@ -80,11 +80,9 @@ resource "aws_lambda_function" "backend" {
 
   environment {
     variables = {
-      SUPABASE_URL              = var.supabase_url
-      SUPABASE_ANON_KEY         = var.supabase_anon_key
-      SUPABASE_SERVICE_ROLE_KEY = var.supabase_service_role_key
-      SUPABASE_JWT_SECRET       = var.supabase_jwt_secret
-      ALLOWED_ORIGINS           = var.allowed_origins
+      SUPABASE_URL    = var.supabase_url
+      SUPABASE_ANON_KEY = var.supabase_anon_key
+      ALLOWED_ORIGINS   = var.allowed_origins
       NODE_ENV                  = "production"
     }
   }

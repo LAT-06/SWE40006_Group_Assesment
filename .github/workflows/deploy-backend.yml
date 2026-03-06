@@ -73,7 +73,5 @@ jobs:
         env:
           TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
           TF_VAR_supabase_anon_key: ${{ secrets.SUPABASE_ANON_KEY }}
-          TF_VAR_supabase_service_role_key: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          TF_VAR_supabase_jwt_secret: ${{ secrets.SUPABASE_JWT_SECRET }}
           TF_VAR_allowed_origins: "https://${{ secrets.CLOUDFRONT_DOMAIN }}"
         run: terraform apply -auto-approve

@@ -202,8 +202,6 @@ Type: **Secret text** for all entries.
 | `vite-api-url` | API Gateway URL (from `terraform output api_url`) |
 | `supabase-url` | Supabase project URL |
 | `supabase-anon-key` | Supabase anon key |
-| `supabase-service-role-key` | Supabase service role key |
-| `supabase-jwt-secret` | Supabase JWT secret |
 | `tf-state-bucket` | S3 bucket for Terraform remote state (from Part 5.2) |
 
 ### 3.6 IAM user permissions for Jenkins
@@ -379,9 +377,7 @@ cd ../terraform
 terraform init
 terraform apply \
   -var="supabase_url=https://xxx.supabase.co" \
-  -var="supabase_anon_key=YOUR_ANON_KEY" \
-  -var="supabase_service_role_key=YOUR_SERVICE_KEY" \
-  -var="supabase_jwt_secret=YOUR_JWT_SECRET"
+  -var="supabase_anon_key=YOUR_ANON_KEY"
 ```
 
 Type `yes` when prompted. Terraform will create:

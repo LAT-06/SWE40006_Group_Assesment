@@ -16,16 +16,6 @@ variable "supabase_anon_key" {
   description = "Supabase anon (public) key"
 }
 
-variable "supabase_service_role_key" {
-  description = "Supabase service role key — grants admin-level DB access"
-  sensitive   = true
-}
-
-variable "supabase_jwt_secret" {
-  description = "Supabase JWT secret used to verify user tokens"
-  sensitive   = true
-}
-
 variable "allowed_origins" {
   description = "CORS allowed origins for the backend API (set to your CloudFront domain after first deploy)"
   default     = "*"
