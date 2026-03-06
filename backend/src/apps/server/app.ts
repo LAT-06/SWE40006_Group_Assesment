@@ -20,16 +20,19 @@ export class Server {
     this.app = express();
 
     // CORS Configuration
-    const allowedOrigins = process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
-      : null; // null = allow all (dev default)
+    const rawOrigins = process.env.ALLOWED_ORIGINS;
+    const isWildcard = !rawOrigins || rawOrigins.trim() === "*";
+    const allowedOrigins = isWildcard
+      ? "*"
+      : rawOrigins.split(",").map((o) => o.trim());
 
     this.app.use(
       cors({
-        origin: allowedOrigins ?? "*",
+        origin: allowedOrigins,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
         allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-        credentials: true,
+        // credentials only works with explicit origins, not wildcard
+        credentials: !isWildcard,
       }),
     );
 
