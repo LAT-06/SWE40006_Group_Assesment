@@ -124,13 +124,14 @@ pipeline {
             when { branch 'main' }
             steps {
                 withCredentials([
-                    string(credentialsId: 'aws-access-key-id',         variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key',      variable: 'AWS_SECRET_ACCESS_KEY'),
-                    string(credentialsId: 'aws-region',                 variable: 'AWS_DEFAULT_REGION'),
-                    string(credentialsId: 's3-bucket',                  variable: 'S3_BUCKET'),
-                    string(credentialsId: 'cloudfront-distribution-id', variable: 'CLOUDFRONT_DISTRIBUTION_ID')
+                    string(credentialsId: 'aws-access-key-id',          variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key',       variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 's3-bucket',                   variable: 'S3_BUCKET'),
+                    string(credentialsId: 'cloudfront-distribution-id',  variable: 'CLOUDFRONT_DISTRIBUTION_ID')
                 ]) {
                     sh '''
+                        export AWS_DEFAULT_REGION=ap-southeast-2
+
                         # Content-hashed assets → 1-year immutable cache
                         aws s3 sync frontend/dist/assets s3://$S3_BUCKET/assets \
                             --cache-control "public, max-age=31536000, immutable" \
@@ -156,24 +157,22 @@ pipeline {
             when { branch 'main' }
             steps {
                 withCredentials([
-                    string(credentialsId: 'aws-access-key-id',          variable: 'AWS_ACCESS_KEY_ID'),
-                    string(credentialsId: 'aws-secret-access-key',       variable: 'AWS_SECRET_ACCESS_KEY'),
-                    string(credentialsId: 'aws-region',                  variable: 'AWS_DEFAULT_REGION'),
-                    string(credentialsId: 'tf-state-bucket',             variable: 'TF_STATE_BUCKET'),
-                    string(credentialsId: 'supabase-url',      variable: 'TF_VAR_supabase_url'),
-                    string(credentialsId: 'supabase-anon-key', variable: 'TF_VAR_supabase_anon_key'),
-                    string(credentialsId: 'cloudfront-domain', variable: 'CLOUDFRONT_DOMAIN')
+                    string(credentialsId: 'aws-access-key-id',    variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY'),
+                    string(credentialsId: 'tf-state-bucket',       variable: 'TF_STATE_BUCKET'),
+                    string(credentialsId: 'supabase-url',          variable: 'TF_VAR_supabase_url'),
+                    string(credentialsId: 'supabase-anon-key',     variable: 'TF_VAR_supabase_anon_key'),
+                    string(credentialsId: 'cloudfront-domain',     variable: 'CLOUDFRONT_DOMAIN')
                 ]) {
                     dir('terraform') {
                         sh '''
+                            export AWS_DEFAULT_REGION=ap-southeast-2
                             export TF_VAR_allowed_origins="https://$CLOUDFRONT_DOMAIN"
 
-                            # Pull shared state from S3 so every build sees the same infrastructure
                             terraform init \
                                 -backend-config="bucket=$TF_STATE_BUCKET" \
-                                -backend-config="region=$AWS_DEFAULT_REGION"
+                                -backend-config="region=ap-southeast-2"
 
-                            # Update Lambda code + any infra changes — no manual approval
                             terraform apply -auto-approve
                         '''
                     }
