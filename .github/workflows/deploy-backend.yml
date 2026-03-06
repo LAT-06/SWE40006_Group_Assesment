@@ -48,7 +48,7 @@ jobs:
           cp -r dist/ lambda_pkg/dist
           cp package.json lambda_pkg/
           cd lambda_pkg && npm install --omit=dev --ignore-scripts && cd ..
-          zip -r ../terraform/backend.zip lambda_pkg/
+          cd lambda_pkg && zip -r ../../terraform/backend.zip . && cd ..
           rm -rf lambda_pkg
 
       - name: Check secrets are set
