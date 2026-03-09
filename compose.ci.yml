@@ -1,0 +1,71 @@
+# CI infrastructure: Jenkins + SonarQube
+# Run with:  docker compose -f compose.ci.yml up -d
+#
+# First time only — create the named volumes so data persists across restarts:
+#   docker volume create jenkins_home
+#   docker volume create sonarqube_data
+#   docker volume create sonarqube_logs
+#   docker volume create sonarqube_extensions
+#   docker volume create postgresql_data
+
+services:
+
+  # ── Jenkins ───────────────────────────────────────────────────────────────
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # Web UI  →  http://localhost:8080
+      - "50000:50000" # Agent port (not needed for single-node but good to have)
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # Mount Docker socket so Jenkins can run docker commands (optional)
+      # - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      # Skip the initial setup wizard — remove this line if you want the wizard
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+
+  # ── SonarQube ─────────────────────────────────────────────────────────────
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    restart: unless-stopped
+    depends_on:
+      - sonarqube_db
+    ports:
+      - "9000:9000"   # Web UI  →  http://localhost:9000
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonarqube_db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    # SonarQube needs this kernel setting on Linux hosts
+    # If it fails with "max virtual memory areas" run:
+    #   sudo sysctl -w vm.max_map_count=524288
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # ── PostgreSQL (SonarQube database) ───────────────────────────────────────
+  sonarqube_db:
+    image: postgres:15-alpine
+    container_name: sonarqube_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - postgresql_data:/var/lib/postgresql/data
+
+volumes:
+  jenkins_home:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  postgresql_data:

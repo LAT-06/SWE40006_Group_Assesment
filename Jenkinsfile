@@ -53,8 +53,8 @@ pipeline {
 
                 stage('Backend: Unit Tests') {
                     steps {
-                        // vitest in single-run (non-watch) mode
-                        dir('backend') { sh 'npm test -- --run' }
+                        // vitest --coverage outputs lcov.info for SonarQube
+                        dir('backend') { sh 'npm run test:coverage' }
                     }
                 }
 
@@ -69,7 +69,37 @@ pipeline {
             }
         }
 
-        // ── 3. BUILD ───────────────────────────────────────────────────────────
+        // ── 3. SONARQUBE ANALYSIS ──────────────────────────────────────────────
+        //    Scans source code and uploads coverage to SonarQube.
+        //    Requires: SonarQube Scanner plugin + a SonarQube server named
+        //    'SonarQube' configured in Manage Jenkins → Configure System.
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    // sonar-scanner reads sonar-project.properties at repo root.
+                    // The SONAR_HOST_URL and login token are injected automatically
+                    // by withSonarQubeEnv from the Jenkins server configuration.
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
+        // ── 4. QUALITY GATE ────────────────────────────────────────────────────
+        //    Jenkins waits for SonarQube to finish analysis and return a pass/fail.
+        //    If the Quality Gate fails (e.g. coverage < threshold, new bugs found)
+        //    this stage marks the build as FAILED and blocks deploy stages.
+        //    Requires: a webhook configured in SonarQube pointing back to Jenkins:
+        //    http://<jenkins-url>/sonarqube-webhook/
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    // abortPipeline: true → marks build FAILED (not just UNSTABLE)
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // ── 5. BUILD ───────────────────────────────────────────────────────────
         //    Build artefacts needed for deployment.
         stage('Build') {
             parallel {
@@ -99,7 +129,7 @@ pipeline {
             }
         }
 
-        // ── 4. PACKAGE LAMBDA ─────────────────────────────────────────────────
+        // ── 6. PACKAGE LAMBDA ─────────────────────────────────────────────────
         stage('Package Lambda') {
             when { branch 'main' }
             steps {
@@ -119,7 +149,7 @@ pipeline {
             }
         }
 
-        // ── 5. DEPLOY FRONTEND → S3 + CloudFront ──────────────────────────────
+        // ── 7. DEPLOY FRONTEND → S3 + CloudFront ──────────────────────────────
         stage('Deploy Frontend') {
             when { branch 'main' }
             steps {
@@ -152,7 +182,7 @@ pipeline {
             }
         }
 
-        // ── 6. DEPLOY BACKEND → Lambda via Terraform ──────────────────────────
+        // ── 8. DEPLOY BACKEND → Lambda via Terraform ──────────────────────────
         stage('Deploy Backend') {
             when { branch 'main' }
             steps {

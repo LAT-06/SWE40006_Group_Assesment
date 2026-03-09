@@ -100,20 +100,47 @@ terraform -chdir=terraform output api_url             # your backend URL
 
 The `Jenkinsfile` at the repo root drives all pipelines. It runs CI checks on every branch and deploys only when on `main`.
 
-### 3.1 Install Jenkins on your home server
+### 3.1 Start Jenkins + SonarQube with Docker Compose
 
-**Option A — Docker (recommended)**
+The repo includes `compose.ci.yml` which starts Jenkins, SonarQube, and a PostgreSQL database for SonarQube in one command.
+
 ```bash
-docker run -d \
-  --name jenkins \
-  -p 8080:8080 -p 50000:50000 \
-  -v jenkins_home:/var/jenkins_home \
-  jenkins/jenkins:lts
-# Get the one-time admin password:
+# Start all CI services
+docker compose -f compose.ci.yml up -d
+
+# Check they are running
+docker compose -f compose.ci.yml ps
+```
+
+| Service | URL |
+|---|---|
+| Jenkins | http://localhost:8080 |
+| SonarQube | http://localhost:9000 |
+
+**Get the Jenkins initial admin password:**
+```bash
 docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
 
-**Option B — Native (Ubuntu/Debian)**
+> **macOS / Linux note:** SonarQube requires a higher virtual memory limit. If it fails to start run: `sudo sysctl -w vm.max_map_count=524288`
+
+### 3.1a Setup SonarQube (http://localhost:9000)
+
+1. Login: `admin` / `admin` → change password when prompted
+2. Create project: **Projects → Create project manually**
+   - Project key: `deployma` ← must match `sonar-project.properties`
+   - Display name: `Deployma Grocery App`
+3. Generate token: **My Account → Security → Generate Token**
+   - Name: `jenkins-token`, copy the value (shown once only)
+4. Create webhook so Jenkins gets the Quality Gate result:
+   **Administration → Webhooks → Create**
+   - Name: `Jenkins`
+   - URL: `http://jenkins:8080/sonarqube-webhook/`
+   (uses the Docker service name `jenkins`, not `localhost`)
+
+---
+
+**Option — Native install (Ubuntu/Debian)**
 ```bash
 sudo apt install -y openjdk-17-jdk
 curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key \
@@ -183,6 +210,8 @@ In the Jenkins job → Build Triggers → **Poll SCM** → schedule `H/1 * * * *
 | **GitHub** | Webhook trigger integration |
 | **Credentials Binding** | Inject secrets into pipeline steps |
 | **Workspace Cleanup** | `cleanWs()` in post block |
+| **SonarQube Scanner** | Run `sonar-scanner` and send results to SonarQube |
+| **NodeJS** | Manage Node.js versions on the agent |
 
 ### 3.5 Add credentials to Jenkins
 
@@ -203,6 +232,11 @@ Type: **Secret text** for all entries.
 | `supabase-url` | Supabase project URL |
 | `supabase-anon-key` | Supabase anon key |
 | `tf-state-bucket` | S3 bucket for Terraform remote state (from Part 5.2) |
+
+**Connect Jenkins to SonarQube** (Manage Jenkins → Configure System → SonarQube servers):
+- Name: `SonarQube` ← must match exactly — Jenkinsfile uses `withSonarQubeEnv('SonarQube')`
+- Server URL: `http://sonarqube:9000`
+- Server authentication token: add a new credential → **Secret text** → paste the `jenkins-token` from step 3.1a
 
 ### 3.6 IAM user permissions for Jenkins
 
@@ -283,25 +317,35 @@ Git push to any branch
          │         ├── Frontend: Type Check     (vue-tsc --build)
          │         ├── Frontend: Security Audit (npm audit --audit-level=high)
          │         ├── Backend:  Type Check     (tsc --noEmit)
-         │         ├── Backend:  Unit Tests     (vitest --run)
+         │         ├── Backend:  Unit Tests     (vitest --coverage → lcov.info)
          │         └── Backend:  Security Audit (npm audit --audit-level=high)
          │
          │   ✖ Any failure above → pipeline stops, no deploy
          │
-         ├── Stage 3: Build          (when: branch = main only)
+         ├── Stage 3: SonarQube Analysis  (runs on ALL branches)
+         │         sonar-scanner reads sonar-project.properties
+         │         uploads source code + lcov coverage → SonarQube server
+         │         checks: bugs, code smells, security hotspots, coverage %
+         │
+         ├── Stage 4: Quality Gate        (runs on ALL branches)
+         │         Jenkins waits (max 5 min) for SonarQube webhook result
+         │         FAIL → pipeline stops, no deploy
+         │         PASS → continue ↓
+         │
+         ├── Stage 5: Build          (when: branch = main only)
          │         ├── Frontend: Vite build  → dist/
          │         └── Backend:  tsc build   → dist/
          │
-         ├── Stage 4: Package Lambda (when: branch = main)
+         ├── Stage 6: Package Lambda (when: branch = main)
          │         zip dist/ + prod node_modules → terraform/backend.zip
          │
-         ├── Stage 5: Deploy Frontend (when: branch = main)
+         ├── Stage 7: Deploy Frontend (when: branch = main)
          │         1. aws s3 sync assets  → 1-year immutable cache
          │         2. aws s3 sync HTML    → no-cache
          │         3. CloudFront cache invalidation
          │         └─► Live at https://d1234.cloudfront.net
          │
-         └── Stage 6: Deploy Backend  (when: branch = main)
+         └── Stage 8: Deploy Backend  (when: branch = main)
                    1. terraform init  (pull shared state from S3)
                    2. terraform apply (update Lambda code + API Gateway)
                    └─► Live at https://xxxx.execute-api.region.amazonaws.com
@@ -313,8 +357,10 @@ Git push to any branch
 Push to feature-branch / PR
          │
          ├── Stage 1: Install
-         ├── Stage 2: Code Scan  ← all 5 checks run in parallel
-         └── Stages 3–6 SKIPPED  (when { branch 'main' } not satisfied)
+         ├── Stage 2: Code Scan      ← all 5 checks run in parallel
+         ├── Stage 3: SonarQube Analysis
+         ├── Stage 4: Quality Gate   ← blocks merge if Sonar fails
+         └── Stages 5–8 SKIPPED     (when { branch 'main' } not satisfied)
 
          All green → safe to merge
          Any failure → blocks merge
