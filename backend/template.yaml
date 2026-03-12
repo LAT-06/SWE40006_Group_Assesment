@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: Deployma Backend — Lambda + API Gateway HTTP API
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    Environment:
+      Variables:
+        SUPABASE_URL: !Ref SupabaseUrl
+        SUPABASE_ANON_KEY: !Ref SupabaseAnonKey
+        SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey
+        SUPABASE_JWT_SECRET: !Ref SupabaseJwtSecret
+        ALLOWED_ORIGINS: !Ref AllowedOrigins
+        NODE_ENV: production
+
+Parameters:
+  SupabaseUrl:
+    Type: String
+  SupabaseAnonKey:
+    Type: String
+  SupabaseServiceRoleKey:
+    Type: String
+    NoEcho: true
+  SupabaseJwtSecret:
+    Type: String
+    NoEcho: true
+  AllowedOrigins:
+    Type: String
+    Default: "*"
+
+Resources:
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/apps/server/lambda.handler
+      CodeUri: .
+      Events:
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: ANY
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt BackendFunction.Arn

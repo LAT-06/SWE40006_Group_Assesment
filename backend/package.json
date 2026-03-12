@@ -8,13 +8,15 @@
     "start": "tsx src/apps/server/start.ts",
     "build": "tsc --noEmit false --outDir dist",
     "type-check": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/aws-lambda": "^8.10.161",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.0",
@@ -22,10 +24,12 @@
     "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
+    "@vitest/coverage-v8": "^4.0.18",
     "vitest": "^4.0.18"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.97.0",
+    "@vendia/serverless-express": "^4.12.6",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
