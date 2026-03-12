@@ -1,12 +1,23 @@
 services:
+  #
+  # ------------------ MARK: Backend
+  #
   backend:
     build: ./backend
+    restart: on-failure:5
     ports:
       - 3667:3000
     environment:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
+  #
+  # ------------------ MARK: Frontend
+  #
   frontend:
     build:
       context: ./frontend
@@ -14,11 +25,16 @@ services:
         VITE_SUPABASE_URL: ${SUPABASE_URL}
         VITE_SUPABASE_ANON_KEY: ${SUPABASE_KEY}
         VITE_API_URL: http://backend:3667
+    restart: on-failure:5
     ports:
       - 80:5173
     environment:
       VITE_SUPABASE_URL: ${SUPABASE_URL}
       VITE_SUPABASE_ANON_KEY: ${SUPABASE_KEY}
       VITE_API_URL: http://backend:3667
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     depends_on:
       - backend
