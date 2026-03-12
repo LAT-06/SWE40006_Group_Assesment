@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, shallowRef } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { supabase } from "@/lib/supabase";
 import { useCartStore } from "@/stores/cart";
+import { useConfirmDialog } from "@/composables/useConfirmDialog";
+import type { Order, OrderItemWithProduct } from "@/types";
+import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -13,7 +16,7 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 
 // ─── MARK: Real order data ────────────────────────────────────────────────
-const order = ref<any>(null);
+const order = shallowRef<Order | null>(null);
 
 const fetchOrder = async () => {
   loading.value = true;
@@ -28,8 +31,8 @@ const fetchOrder = async () => {
       .eq("id", orderId)
       .single();
     if (err) throw err;
-    order.value = data;
-  } catch (e: any) {
+    order.value = data as Order;
+  } catch (e: unknown) {
     error.value = "Order not found or you don't have access.";
     console.error(e);
   } finally {
@@ -75,21 +78,22 @@ const cancelledStep = {
 const statusOrder = ["pending", "processing", "shipped", "delivered"];
 
 const timeline = computed(() => {
-  if (!order.value) return [];
-  const current = order.value.status as string;
+  const o = order.value;
+  if (!o) return [];
+  const current = o.status as string;
 
   if (current === "cancelled") {
     return [
       {
         ...statusSteps[0],
         status: "completed",
-        time: formatDate(order.value.created_at),
+        time: formatDate(o.created_at),
       },
       {
         ...cancelledStep,
         status: "active",
-        time: order.value.cancelled_at
-          ? formatDate(order.value.cancelled_at)
+        time: o.cancelled_at
+          ? formatDate(o.cancelled_at)
           : "—",
       },
     ];
@@ -106,7 +110,7 @@ const timeline = computed(() => {
           : "pending",
     time:
       idx === 0
-        ? formatDate(order.value.created_at)
+        ? formatDate(o.created_at)
         : idx <= currentIdx
           ? "✓ Done"
           : "Pending",
@@ -122,7 +126,7 @@ const currentStatusLabel = computed(() => {
     delivered: "Delivered",
     cancelled: "Cancelled",
   };
-  return map[order.value.status] || order.value.status;
+  return map[order.value.status ?? ''] || order.value.status;
 });
 
 const currentStatusIcon = computed(() => {
@@ -134,7 +138,7 @@ const currentStatusIcon = computed(() => {
     delivered: "📦",
     cancelled: "✕",
   };
-  return map[order.value.status] || "📋";
+  return map[order.value.status ?? ''] || "📋";
 });
 
 const deliverySlotLabel = computed(() => {
@@ -167,7 +171,7 @@ const shippingAddress = computed(() => {
 const subtotal = computed(() => {
   if (!order.value?.order_items) return 0;
   return order.value.order_items.reduce(
-    (sum: number, item: any) =>
+    (sum: number, item: OrderItemWithProduct) =>
       sum + (item.price_at_purchase ?? 0) * (item.quantity ?? 1),
     0,
   );
@@ -179,7 +183,7 @@ const deliveryFee = computed(() => {
 });
 
 // ─── MARK: Utilities ──────────────────────────────────────────────────────
-const formatDate = (iso: string) => {
+const formatDate = (iso: string | null) => {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("en-US", {
     month: "short",
@@ -193,13 +197,13 @@ const formatDate = (iso: string) => {
 // ─── MARK: Actions ────────────────────────────────────────────────────────
 const handlePrint = () => window.print();
 
-const handleReorder = () => {
+const handleReorder = async () => {
   if (!order.value?.order_items?.length) {
     router.push("/");
     return;
   }
-  if (!confirm("Add these items to your cart?")) return;
-  order.value.order_items.forEach((item: any) => {
+  if (!await useConfirmDialog().confirm("Add these items to your cart?")) return;
+  order.value.order_items.forEach((item: OrderItemWithProduct) => {
     cartStore.addItem({
       productId: item.product?.id,
       name: item.product?.name || "Product",
@@ -212,28 +216,48 @@ const handleReorder = () => {
   router.push("/cart");
 };
 
-onMounted(fetchOrder);
+// ─── Real-time subscription ───────────────────────────────────────────────
+let orderChannel: ReturnType<typeof supabase.channel> | null = null;
+
+const subscribeToOrder = () => {
+  if (!orderId) return;
+  orderChannel = supabase
+    .channel(`order-tracking-${orderId}`)
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` },
+      (payload) => {
+        const updated = payload.new as Record<string, unknown>;
+        if (order.value) {
+          order.value = {
+            ...order.value,
+            status: (updated.status as typeof order.value.status) ?? order.value.status,
+            cancelled_at: (updated.cancelled_at as string | null) ?? order.value.cancelled_at,
+            updated_at: (updated.updated_at as string) ?? order.value.updated_at,
+          };
+        }
+      }
+    )
+    .subscribe();
+};
+
+onMounted(() => {
+  fetchOrder();
+  subscribeToOrder();
+});
+
+onUnmounted(() => {
+  if (orderChannel) supabase.removeChannel(orderChannel);
+});
 </script>
 
 <template>
   <div class="order-tracking-page">
-    <!-- Header -->
-    <header>
-      <div class="container">
-        <div class="header-content">
-          <router-link to="/" class="logo">Deployma</router-link>
-          <router-link to="/profile" class="back-link">← My Orders</router-link>
-        </div>
-      </div>
-    </header>
-
     <!-- Main Content -->
     <div class="main-content">
       <div class="container">
         <!-- Loading -->
-        <div v-if="loading" style="padding: 60px; text-align: center; font-size: 18px">
-          Loading order…
-        </div>
+        <LoadingSpinner v-if="loading" message="Loading order..." size="48px" padding="60px" />
 
         <!-- Error -->
         <div v-else-if="error" style="padding: 60px; text-align: center; color: #e74c3c">

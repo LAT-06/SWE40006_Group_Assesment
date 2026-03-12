@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, computed } from "vue";
+import { ref, onMounted, onUnmounted, watch, computed, shallowRef } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useCartStore } from "@/stores/cart";
 import { useProductStore } from "@/stores/products";
 import { supabase } from "@/lib/supabase";
+import type { Product } from "@/types";
+import type { Tables } from "@/lib/models";
+import ProductReviews from "@/components/ProductReviews.vue";
+import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -14,8 +18,8 @@ const quantity = ref(1);
 const activeTab = ref("description");
 const addedToCart = ref(false);
 const loading = ref(true);
-const product = ref<any>(null);
-const relatedProducts = ref<any[]>([]);
+const product = shallowRef<Product | null>(null);
+const relatedProducts = ref<Pick<Tables<'products'>, 'id' | 'name' | 'price' | 'image_url'>[]>([]);
 
 const fetchProduct = async (id: string) => {
   // Clean up any existing stock subscription for the old product
@@ -37,7 +41,7 @@ const fetchProduct = async (id: string) => {
       .single();
 
     if (error) throw error;
-    product.value = data;
+    product.value = data as Product;
     subscribeToStock(id);
 
     // Fetch related products in same category
@@ -72,6 +76,10 @@ const updateQuantity = (change: number) => {
   quantity.value = Math.min(Math.max(1, quantity.value + change), max as number);
 };
 
+const nutritionRows = computed(() =>
+  (product.value?.nutrition ?? []) as Array<{ label: string; value: string }>
+);
+
 const handleAddToCart = () => {
   if (!product.value) return;
   cartStore.addItem({
@@ -99,9 +107,17 @@ const switchTab = (tabId: string) => {
 };
 
 // ─── Store Availability ───────────────────────────────────────────────────
-const storeAvailability = ref<any[]>([]);
+interface StoreStock {
+  id: string;
+  name: string;
+  address: string;
+  phone: string | null;
+  quantity: number;
+  in_stock: boolean;
+}
+const storeAvailability = ref<StoreStock[]>([]);
 const storeAvailabilityLoading = ref(false);
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const fetchStoreAvailability = async () => {
   if (!product.value) return;
@@ -128,11 +144,13 @@ const subscribeToStock = (productId: string) => {
       { event: "UPDATE", schema: "public", table: "products", filter: `id=eq.${productId}` },
       (payload) => {
         if (product.value) {
-          product.value.quantity = (payload.new as any).quantity ?? product.value.quantity;
-          product.value.in_stock = (payload.new as any).in_stock ?? product.value.in_stock;
+          const updated = payload.new as Tables<'products'>;
+          const newQty = updated.quantity ?? product.value.quantity;
+          const newInStock = updated.in_stock ?? product.value.in_stock;
+          product.value = { ...product.value, quantity: newQty, in_stock: newInStock };
           // Clamp selected quantity to new available stock
-          if (product.value.quantity !== undefined && quantity.value > product.value.quantity) {
-            quantity.value = Math.max(1, product.value.quantity);
+          if (newQty != null && quantity.value > newQty) {
+            quantity.value = Math.max(1, newQty);
           }
         }
       }
@@ -148,31 +166,11 @@ onUnmounted(() => {
 <template>
   <div class="product-page">
     <!-- Loading -->
-    <div v-if="loading" style="text-align: center; padding: 80px; font-size: 2rem">
-      Loading...
-    </div>
+    <LoadingSpinner v-if="loading" message="Loading product..." size="48px" padding="80px" />
     <div v-else-if="!product" style="text-align: center; padding: 80px">
       Product not found.
     </div>
     <template v-else>
-      <!-- Header -->
-      <header>
-        <div class="container">
-          <div class="header-content">
-            <router-link to="/" class="logo">Deployma</router-link>
-            <div class="search-bar">
-              <input type="text" placeholder="Search for products..." />
-            </div>
-            <div class="header-actions">
-              <button class="cart-btn" @click="router.push('/cart')">
-                Cart
-                <span class="cart-count">{{ cartStore.totalItems }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <!-- Breadcrumb -->
       <div class="container">
         <div class="breadcrumb">
@@ -220,19 +218,19 @@ onUnmounted(() => {
               <!-- Purchase Box -->
               <div class="purchase-box">
                 <!-- Real-time stock badge -->
-                <div class="stock-status" :style="product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)
+                <div class="stock-status" :style="product.in_stock === false || (product.quantity != null && product.quantity === 0)
                   ? 'color:#c0392b; background:#fdecea; border-radius:4px; padding:4px 10px; font-weight:700;'
                   : 'color:#27ae60; background:#eafaf1; border-radius:4px; padding:4px 10px; font-weight:700;'
                 ">
-                  {{ product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)
+                  {{ product.in_stock === false || (product.quantity != null && product.quantity === 0)
                     ? '✗ Out of Stock'
-                    : product.quantity !== undefined && product.quantity <= 10
+                    : product.quantity != null && product.quantity <= 10
                       ? `Low Stock — only ${product.quantity} left`
                       : '✓ In Stock'
                   }}
                 </div>
 
-                <div v-if="product.in_stock !== false && (product.quantity === undefined || product.quantity > 0)" class="quantity-selector">
+                <div v-if="product.in_stock !== false && (product.quantity == null || product.quantity > 0)" class="quantity-selector">
                   <label class="quantity-label">Quantity:</label>
                   <div class="quantity-control">
                     <button class="qty-btn minus" @click="updateQuantity(-1)">
@@ -240,7 +238,7 @@ onUnmounted(() => {
                     </button>
                     <div class="qty-display">{{ quantity }}</div>
                     <button class="qty-btn plus"
-                      :disabled="product.quantity !== undefined && quantity >= product.quantity"
+                      :disabled="product.quantity != null && quantity >= product.quantity"
                       @click="updateQuantity(1)">
                       +
                     </button>
@@ -248,12 +246,12 @@ onUnmounted(() => {
                 </div>
 
                 <button class="add-to-cart-btn" :class="{ added: addedToCart }"
-                  :disabled="product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)"
+                  :disabled="product.in_stock === false || (product.quantity != null && product.quantity === 0)"
                   @click="handleAddToCart">
                   {{ addedToCart ? "✓ Added to Cart!" : "🛒 Add to Cart" }}
                 </button>
                 <button class="buy-now-btn"
-                  :disabled="product.in_stock === false || (product.quantity !== undefined && product.quantity === 0)"
+                  :disabled="product.in_stock === false || (product.quantity != null && product.quantity === 0)"
                   @click="buyNow">⚡ Buy Now</button>
               </div>
             </div>
@@ -271,6 +269,9 @@ onUnmounted(() => {
               <div class="tab" :class="{ active: activeTab === 'storage' }" @click="switchTab('storage')">
                 Storage
               </div>
+              <div class="tab" :class="{ active: activeTab === 'reviews' }" @click="switchTab('reviews')">
+                Reviews
+              </div>
               <div class="tab" :class="{ active: activeTab === 'stores' }" @click="switchTab('stores')">
                 Store Availability
               </div>
@@ -284,10 +285,10 @@ onUnmounted(() => {
 
             <div class="tab-content" :class="{ active: activeTab === 'nutrition' }">
               <h3>Nutritional Information</h3>
-              <template v-if="product?.nutrition?.length">
+              <template v-if="nutritionRows.length">
                 <table class="nutrition-table">
                   <tbody>
-                    <tr v-for="row in product.nutrition" :key="row.label">
+                    <tr v-for="row in nutritionRows" :key="row.label">
                       <td>{{ row.label }}</td>
                       <td>{{ row.value }}</td>
                     </tr>
@@ -301,6 +302,10 @@ onUnmounted(() => {
               <h3>Storage Instructions</h3>
               <p v-if="product?.storage" style="white-space: pre-line;">{{ product.storage }}</p>
               <p v-else style="color:#999;">No storage instructions available.</p>
+            </div>
+
+            <div class="tab-content" :class="{ active: activeTab === 'reviews' }">
+              <ProductReviews v-if="product" :product-id="product.id" />
             </div>
 
             <div class="tab-content" :class="{ active: activeTab === 'stores' }">

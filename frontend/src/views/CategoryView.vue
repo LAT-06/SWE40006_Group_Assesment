@@ -2,7 +2,9 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useCartStore } from "@/stores/cart";
-import { useProductStore } from "@/stores/products";
+import { useProductStore, type Product } from "@/stores/products";
+import ProductCard from "@/components/ProductCard.vue";
+import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
 
 const router = useRouter();
 const route = useRoute();
@@ -39,14 +41,16 @@ const filters = ref<Filters>({
 const initFilters = () => {
   const categoryParam = route.query.cat as string;
   const routeSlug = route.params.slug as string;
+  const searchParam = route.query.search as string;
+
+  if (searchParam) {
+    searchQuery.value = searchParam;
+  }
 
   if (routeSlug) {
     filters.value.categories = [routeSlug];
   } else if (categoryParam) {
     filters.value.categories = categoryParam.split(",").map((c) => c.trim());
-  } else {
-    // If we navigate to /category without params, maybe clear filters or leave as is?
-    // Let's leave them unless explicitly cleared by user, or clear if 'fresh' load
   }
 };
 
@@ -56,6 +60,14 @@ watch(
     // Clear previous category filters and set new one
     filters.value.categories = [];
     initFilters();
+  },
+);
+
+// Re-init when query.search changes (e.g. from AppHeader)
+watch(
+  () => route.query.search,
+  (val) => {
+    if (typeof val === 'string') searchQuery.value = val;
   },
 );
 
@@ -94,7 +106,7 @@ const filteredProducts = computed(() => {
     products = products.filter(
       (p) =>
         p.dietary_tags &&
-        filters.value.dietary.some((d) => p.dietary_tags.includes(d)),
+        filters.value.dietary.some((d) => p.dietary_tags!.includes(d)),
     );
   }
 
@@ -140,7 +152,7 @@ const filteredProducts = computed(() => {
 
 // Active filter tags
 const activeFilterTags = computed(() => {
-  const tags: Array<{ key: string; label: string; value: any }> = [];
+  const tags: Array<{ key: string; label: string; value: string | boolean }> = [];
 
   if (searchQuery.value.trim()) {
     tags.push({ key: "search", label: `"${searchQuery.value.trim()}"`, value: searchQuery.value });
@@ -225,16 +237,16 @@ const toggleBooleanFilter = (type: "inStock" | "onSale") => {
   filters.value[type] = !filters.value[type];
 };
 
-const removeFilter = (key: string, value: any) => {
+const removeFilter = (key: string, value: string | boolean) => {
   if (key === "search") {
     searchQuery.value = "";
-  } else if (key === "category") {
+  } else if (key === "category" && typeof value === "string") {
     const index = filters.value.categories.indexOf(value);
     if (index > -1) filters.value.categories.splice(index, 1);
-  } else if (key === "brand") {
+  } else if (key === "brand" && typeof value === "string") {
     const index = filters.value.brands.indexOf(value);
     if (index > -1) filters.value.brands.splice(index, 1);
-  } else if (key === "dietary") {
+  } else if (key === "dietary" && typeof value === "string") {
     const index = filters.value.dietary.indexOf(value);
     if (index > -1) filters.value.dietary.splice(index, 1);
   } else if (key === "inStock") {
@@ -257,14 +269,14 @@ const clearAllFilters = () => {
   };
 };
 
-const addToCart = (product: any) => {
+const addToCart = (product: Product) => {
   cartStore.addItem({
     productId: product.id,
     name: product.name,
-    size: product.weight,
+    size: product.weight ?? "",
     price: product.price,
     quantity: 1,
-    icon: product.image_url,
+    icon: product.image_url ?? "",
   });
 };
 
@@ -279,22 +291,6 @@ const goToCart = () => {
 
 <template>
   <div class="category-page">
-    <!-- Header -->
-    <header class="header">
-      <div class="container">
-        <div class="header-content">
-          <router-link to="/" class="logo">Deployma</router-link>
-          <div class="search-bar">
-            <input v-model="searchQuery" type="text" placeholder="Search for products..." class="search-input" />
-          </div>
-          <button class="cart-btn" @click="goToCart">
-            Cart
-            <span v-if="cartStore.totalItems > 0" class="cart-count">{{ cartStore.totalItems }}</span>
-          </button>
-        </div>
-      </div>
-    </header>
-
     <!-- Breadcrumb -->
     <div class="container">
       <div class="breadcrumb">
@@ -410,33 +406,20 @@ const goToCart = () => {
 
             <!-- Products Grid -->
             <div class="products-container">
-              <div v-if="productStore.loading" class="loading-state" style="text-align: center; padding: 40px">
-                Loading products...
+              <LoadingSpinner v-if="productStore.loading" message="Loading products..." />
+
+              <div v-else-if="productStore.error" class="error-state" style="text-align: center; padding: 40px">
+                <p>Failed to load products. <a href="#" @click.prevent="productStore.fetchProducts()">Try again</a></p>
               </div>
 
               <div v-else class="products-grid" :class="{ 'list-view': viewMode === 'list' }">
-                <div v-for="product in filteredProducts" :key="product.id" class="product-card">
-                  <div v-if="product.badge" class="product-badge">
-                    {{ product.badge }}
-                  </div>
-                  <div class="product-image" @click="goToProduct(product.id)">
-                    {{ product.image_url || "📦" }}
-                  </div>
-                  <div class="product-info">
-                    <div class="product-title" @click="goToProduct(product.id)">
-                      {{ product.name }}
-                    </div>
-                    <div class="product-weight">{{ product.weight }}</div>
-                    <div class="product-footer">
-                      <div class="product-price">
-                        ${{ product.price.toFixed(2) }}
-                      </div>
-                      <button class="add-to-cart" @click="addToCart(product)">
-                        Add
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <ProductCard
+                  v-for="product in filteredProducts"
+                  :key="product.id"
+                  :product="product"
+                  @add-to-cart="addToCart"
+                  @click="goToProduct(product.id)"
+                />
               </div>
 
               <div v-if="!productStore.loading && filteredProducts.length === 0" class="no-results">
@@ -833,114 +816,19 @@ const goToCart = () => {
   grid-template-columns: 1fr;
 }
 
-.product-card {
-  background: var(--bg);
-  border: 3px solid var(--stroke);
-  padding: 0;
-  transition: all 0.3s;
-  position: relative;
-}
-
-.product-card:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: 6px 6px 0 var(--stroke);
-}
-
-.product-badge {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: #f582ae;
-  color: var(--headline);
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 2px solid var(--stroke);
-  z-index: 1;
-}
-
-.product-image {
-  background: white;
-  border-bottom: 3px solid var(--stroke);
-  padding: 40px;
-  text-align: center;
-  font-size: 80px;
-  height: 220px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.product-info {
-  padding: 20px;
-}
-
-.product-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 8px;
-  cursor: pointer;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.product-title:hover {
-  color: #f582ae;
-}
-
-.product-weight {
-  font-size: 14px;
-  color: var(--paragraph);
-  margin-bottom: 16px;
-}
-
-.product-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.product-price {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.add-to-cart {
-  background: #f582ae;
-  color: var(--button-text);
-  border: 3px solid var(--stroke);
-  padding: 10px 20px;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.add-to-cart:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 var(--stroke);
-}
-
 /* List View */
-.products-grid.list-view .product-card {
+.products-grid.list-view :deep(.product-card) {
   display: grid;
   grid-template-columns: 200px 1fr;
 }
 
-.products-grid.list-view .product-image {
+.products-grid.list-view :deep(.product-image) {
   height: 200px;
   border-bottom: none;
   border-right: 3px solid var(--stroke);
 }
 
-.products-grid.list-view .product-info {
+.products-grid.list-view :deep(.product-info) {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1026,11 +914,11 @@ const goToCart = () => {
     grid-template-columns: 1fr;
   }
 
-  .products-grid.list-view .product-card {
+  .products-grid.list-view :deep(.product-card) {
     grid-template-columns: 1fr;
   }
 
-  .products-grid.list-view .product-image {
+  .products-grid.list-view :deep(.product-image) {
     border-right: none;
     border-bottom: 3px solid var(--stroke);
   }

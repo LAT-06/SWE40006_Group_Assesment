@@ -8,6 +8,12 @@ import router from './router'
 
 const app = createApp(App)
 
+app.config.errorHandler = (err, instance, info) => {
+  console.error('[Global Error]', err)
+  console.error('Component:', instance)
+  console.error('Info:', info)
+}
+
 app.use(createPinia())
 app.use(router)
 

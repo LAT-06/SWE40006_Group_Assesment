@@ -7,6 +7,7 @@ A full-stack grocery delivery platform built with Vue 3, TypeScript, Express, an
 ## Features
 
 ### Customer-Facing
+
 - Browse products by category with real-time search and filters (price, stock, dietary, sale)
 - Product detail pages with live stock status (In Stock / Low Stock / Out of Stock)
 - Real-time stock updates — badges update instantly without page refresh
@@ -18,12 +19,14 @@ A full-stack grocery delivery platform built with Vue 3, TypeScript, Express, an
 - "You May Also Like" related products on product detail page
 
 ### Authentication
+
 - Email/password sign-up and login
 - Google OAuth
 - Session persistence across browser refreshes (stored in localStorage)
 - Password reset flow
 
 ### Admin Portal (`/admin`)
+
 - **Dashboard** — live stats (orders, revenue, users, products)
 - **Products** — full CRUD, real-time stock badge on every row
 - **Categories** — full CRUD with slug auto-generation
@@ -39,25 +42,28 @@ A full-stack grocery delivery platform built with Vue 3, TypeScript, Express, an
 ## Tech Stack
 
 ### Frontend
-| Tool | Purpose |
-|---|---|
-| Vue 3 + Composition API | UI framework |
-| TypeScript | Type safety |
-| Pinia | State management |
-| Vue Router | Navigation + auth guards |
-| Supabase JS | Auth, realtime, database queries |
-| Vite | Dev server & production build |
+
+| Tool                    | Purpose                          |
+| ----------------------- | -------------------------------- |
+| Vue 3 + Composition API | UI framework                     |
+| TypeScript              | Type safety                      |
+| Pinia                   | State management                 |
+| Vue Router              | Navigation + auth guards         |
+| Supabase JS             | Auth, realtime, database queries |
+| Vite                    | Dev server & production build    |
 
 ### Backend
-| Tool | Purpose |
-|---|---|
-| Node.js + Express 5 | HTTP server |
-| TypeScript (ESM) | Type-safe server code |
-| tsx | TypeScript runtime (dev) |
-| Supabase JS | Database + service-role access |
-| jose | JWT verification |
+
+| Tool                | Purpose                        |
+| ------------------- | ------------------------------ |
+| Node.js + Express 5 | HTTP server                    |
+| TypeScript (ESM)    | Type-safe server code          |
+| tsx                 | TypeScript runtime (dev)       |
+| Supabase JS         | Database + service-role access |
+| jose                | JWT verification               |
 
 ### Database
+
 - **Supabase** (PostgreSQL) with Row Level Security
 - Migrations in `supabase/migrations/`
 - Key tables: `products`, `categories`, `orders`, `order_items`, `carts`, `cart_items`, `delivery_slots`, `delivery_zones`, `profiles`, `stores`, `store_inventory`, `promo_codes`
@@ -121,6 +127,7 @@ A full-stack grocery delivery platform built with Vue 3, TypeScript, Express, an
 ## Setup
 
 ### Prerequisites
+
 - Node.js 18+
 - A [Supabase](https://supabase.com) project
 
@@ -175,17 +182,15 @@ npm run dev       # Development server at http://localhost:5173
 ## Environment Variables
 
 ### Backend (`backend/.env`)
+
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_JWT_SECRET=your_jwt_secret
-PORT=3000
-ALLOWED_ORIGINS=http://localhost:5173
-ADMIN_EMAILS=admin@example.com
 ```
 
 ### Frontend (`frontend/.env`)
+
 ```env
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your_anon_key
@@ -197,6 +202,7 @@ VITE_API_URL=http://localhost:3000
 ## Development Commands
 
 ### Backend
+
 ```bash
 npm run dev          # Start with hot-reload (tsx watch)
 npm run start        # Start without hot-reload
@@ -206,6 +212,7 @@ npm run test         # Run tests with Vitest
 ```
 
 ### Frontend
+
 ```bash
 npm run dev          # Start development server
 npm run build        # Type-check + build for production (dist/)
@@ -217,29 +224,47 @@ npm run test:unit    # Run unit tests with Vitest
 
 ## Routes
 
-| Path | Description | Auth Required |
-|---|---|---|
-| `/` | Homepage | No |
-| `/category/:slug?` | Browse products | No |
-| `/product/:id` | Product detail | No |
-| `/cart` | Cart & checkout | Yes |
-| `/order-tracking/:orderId?` | Order status | Yes |
-| `/profile` | User profile | Yes |
-| `/admin` | Admin portal | Admin only |
-| `/login` | Sign in / sign up | No |
-| `/signup` | Sign up | No |
-| `/reset-password` | Password reset | No |
+| Path                        | Description       | Auth Required |
+| --------------------------- | ----------------- | ------------- |
+| `/`                         | Homepage          | No            |
+| `/category/:slug?`          | Browse products   | No            |
+| `/product/:id`              | Product detail    | No            |
+| `/cart`                     | Cart & checkout   | Yes           |
+| `/order-tracking/:orderId?` | Order status      | Yes           |
+| `/profile`                  | User profile      | Yes           |
+| `/admin`                    | Admin portal      | Admin only    |
+| `/login`                    | Sign in / sign up | No            |
+| `/signup`                   | Sign up           | No            |
+| `/reset-password`           | Password reset    | No            |
 
 ---
 
 ## Admin Access
 
 To make a user an admin, either:
+
 - Set `role = 'admin'` in the `profiles` table via Supabase Dashboard, or
 - Use the Users section in the Admin Portal to promote an existing user
 
 ---
 
+## Troubleshooting
+
+**Login / OAuth not working**
+
+- Check Supabase credentials in both `.env` files
+- For Google OAuth: enable Google provider in Supabase Dashboard → Authentication → Providers, add redirect URL `http://localhost:5173/`
+
+**Orders not placing / stock not updating**
+
+- Ensure all migrations have been run, especially `20260305040000_product_stock_management.sql`
+- The backend needs `SUPABASE_SERVICE_ROLE_KEY` to call protected RPCs
+
+**Real-time not working**
+
+- Supabase Realtime must be enabled for the `products` table — Dashboard → Database → Replication
+
+---
 ## CI/CD Pipeline
 
 The project uses **GitHub Actions** for automated testing and deployment. All workflows are in `.github/workflows/`.
@@ -274,6 +299,20 @@ Push to main / lat  +  backend/** or terraform/** changed
 └─────────────────────────────────────────────────────────┘
 ```
 
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+
+2. Enable Google OAuth:
+   
+   - Go to Authentication > Providers
+   - Enable Google provider
+   - Add your Google OAuth credentials
+   - Set redirect URL: `http://localhost:5173/`
+
+3. Get your Supabase credentials:
+   
+   - Project URL
+   - Anon Key
+   - Service Role Key (for backend)
 ### Workflow 1: `ci.yml` — Code Scan
 
 Runs on **every push** to every branch and every pull request. Five jobs run in parallel:

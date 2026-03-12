@@ -45,8 +45,8 @@ async function handleReset() {
     if (err) throw err;
     success.value = true;
     setTimeout(() => router.push("/login"), 3000);
-  } catch (e: any) {
-    error.value = e.message || "Failed to update password.";
+  } catch (e: unknown) {
+    error.value = (e instanceof Error ? e.message : null) || "Failed to update password.";
   } finally {
     loading.value = false;
   }

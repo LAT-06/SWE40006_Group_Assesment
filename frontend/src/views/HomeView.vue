@@ -1,75 +1,35 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@/stores/auth";
 import { useCartStore } from "@/stores/cart";
-import { useProductStore } from "@/stores/products";
+import { useProductStore, type Product } from "@/stores/products";
+import ProductCard from "@/components/ProductCard.vue";
+import LoadingSpinner from "@/components/ui/LoadingSpinner.vue";
+import EmptyState from "@/components/ui/EmptyState.vue";
 
 const router = useRouter();
-const authStore = useAuthStore();
 const cartStore = useCartStore();
 const productStore = useProductStore();
-
-const searchQuery = ref("");
 
 onMounted(() => {
   productStore.fetchProducts();
 });
 
-const addToCart = (product: any) => {
+const addToCart = (product: Product) => {
   cartStore.addItem({
     productId: product.id,
     name: product.name,
     price: product.price,
-    size: product.weight,
-    icon: product.image_url,
+    size: product.weight ?? "",
+    icon: product.image_url ?? "",
     quantity: 1,
   });
-  console.log(`Added ${product.name} to cart`);
-};
-
-const handleSignIn = () => {
-  router.push("/login");
-};
-
-const handleCart = () => {
-  router.push("/cart");
 };
 </script>
 
 <template>
   <div class="home-page">
     <div class="grocery-platform">
-      <!-- Header -->
-      <header>
-        <div class="container">
-          <div class="header-content">
-            <router-link to="/" class="logo">Deployma</router-link>
-
-            <div class="search-bar">
-              <input v-model="searchQuery" type="text" placeholder="Search for products, categories..." />
-            </div>
-
-            <div class="header-actions">
-              <button v-if="!authStore.isAuthenticated" class="icon-btn" @click="handleSignIn">
-                Sign In
-              </button>
-              <template v-else>
-                <button class="icon-btn" @click="router.push('/profile')">
-                  Profile
-                </button>
-                <button class="icon-btn" @click="authStore.signOut">
-                  Sign Out
-                </button>
-              </template>
-              <button class="cart-btn" @click="handleCart">
-                Cart
-                <span class="cart-count">{{ cartStore.totalItems }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
 
       <!-- Navigation -->
       <nav>
@@ -170,28 +130,22 @@ const handleCart = () => {
             <router-link to="/category" class="view-all">View all →</router-link>
           </div>
 
-          <div v-if="productStore.loading" style="text-align: center; padding: 40px">
-            Loading products...
+          <LoadingSpinner v-if="productStore.loading" message="Loading products..." />
+
+          <div v-else-if="productStore.error" class="error-state" style="text-align: center; padding: 40px">
+            <p>Failed to load products. <a href="#" @click.prevent="productStore.fetchProducts()">Try again</a></p>
           </div>
 
+          <EmptyState v-else-if="productStore.featuredProducts.length === 0" icon="🛒" message="No products available yet." />
+
           <div v-else class="product-grid">
-            <div v-for="product in productStore.featuredProducts" :key="product.id" class="product-card"
-              @click="router.push(`/product/${product.id}`)" style="cursor: pointer">
-              <div v-if="product.badge" class="product-badge">
-                {{ product.badge }}
-              </div>
-              <div class="product-image">{{ product.image_url || "📦" }}</div>
-              <div class="product-info">
-                <div class="product-title">{{ product.name }}</div>
-                <div class="product-weight">{{ product.weight }}</div>
-                <div class="product-footer">
-                  <div class="product-price">${{ product.price }}</div>
-                  <button class="add-to-cart" @click.stop="addToCart(product)">
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ProductCard
+              v-for="product in productStore.featuredProducts"
+              :key="product.id"
+              :product="product"
+              @add-to-cart="addToCart"
+              @click="router.push(`/product/${product.id}`)"
+            />
           </div>
         </div>
       </section>
@@ -228,50 +182,47 @@ const handleCart = () => {
         </div>
       </section>
 
-      <!-- Footer -->
-      <footer>
+      <!-- Footer Links -->
+      <section class="home-footer">
         <div class="container">
           <div class="footer-content">
             <div class="footer-section">
               <h3>About Deployma</h3>
               <ul class="footer-links">
-                <li><a href="#">About Us</a></li>
-                <li><a href="#">Careers</a></li>
-                <li><a href="#">Press</a></li>
-                <li><a href="#">Blog</a></li>
+                <li><router-link to="/about">About Us</router-link></li>
+                <li><router-link to="/careers">Careers</router-link></li>
+                <li><a href="https://co-opmart.com.vn/tin-tuc-su-kien#">Press</a></li>
               </ul>
             </div>
             <div class="footer-section">
               <h3>Customer Service</h3>
               <ul class="footer-links">
-                <li><a href="#">Help Center</a></li>
-                <li><a href="#">Track Order</a></li>
-                <li><a href="#">Returns</a></li>
-                <li><a href="#">Contact Us</a></li>
+                <li><router-link to="/help">Help Center</router-link></li>
+                <li><router-link to="/order-tracking">Track Order</router-link></li>
+                <li><router-link to="/returns">Returns Policy</router-link></li>
+                <li><router-link to="/contact">Contact Us</router-link></li>
               </ul>
             </div>
             <div class="footer-section">
               <h3>Categories</h3>
               <ul class="footer-links">
-                <li><a href="#">Fresh Produce</a></li>
-                <li><a href="#">Meat & Seafood</a></li>
-                <li><a href="#">Dairy & Eggs</a></li>
-                <li><a href="#">Pantry</a></li>
+                <li><router-link to="/category/fresh-produce">Fresh Produce</router-link></li>
+                <li><router-link to="/category/meat-seafood">Meat &amp; Seafood</router-link></li>
+                <li><router-link to="/category/dairy-eggs">Dairy &amp; Eggs</router-link></li>
+                <li><router-link to="/category/pantry-staples">Pantry</router-link></li>
               </ul>
             </div>
             <div class="footer-section">
               <h3>Connect</h3>
               <ul class="footer-links">
-                <li><a href="#">Facebook</a></li>
-                <li><a href="#">Instagram</a></li>
-                <li><a href="#">Twitter</a></li>
-                <li><a href="#">Newsletter</a></li>
+                <li><a href="https://www.facebook.com/hethongcoopmartvn">Facebook</a></li>
+                <li><a href="https://www.instagram.com/sieuthicoopmart/">Instagram</a></li>
+                <li><a href="https://www.tiktok.com/@co.opmart.official">Tiktok</a></li>
               </ul>
             </div>
           </div>
-          <div class="footer-bottom">© 2026 Deployma. All rights reserved.</div>
         </div>
-      </footer>
+      </section>
     </div>
   </div>
 </template>
@@ -293,40 +244,6 @@ const handleCart = () => {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
-}
-
-/* Header */
-.home-page header {
-  border-bottom: 3px solid var(--stroke);
-  padding: 20px 0;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.home-page .header-content {
-  gap: 30px;
-}
-
-.home-page .header-actions {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.home-page .icon-btn {
-  background: none;
-  border: none;
-  color: var(--headline);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 8px 16px;
-  font-weight: 500;
-  transition: color 0.2s;
-}
-
-.home-page .icon-btn:hover {
-  color: var(--button);
 }
 
 /* Navigation */
@@ -505,88 +422,6 @@ const handleCart = () => {
   gap: 24px;
 }
 
-.product-card {
-  background: var(--bg);
-  border: 3px solid var(--stroke);
-  padding: 0;
-  transition: all 0.3s;
-  position: relative;
-}
-
-.product-card:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: 6px 6px 0 var(--stroke);
-}
-
-.product-image {
-  background: white;
-  border-bottom: 3px solid var(--stroke);
-  padding: 40px;
-  text-align: center;
-  font-size: 80px;
-  height: 220px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.product-badge {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: var(--tertiary);
-  color: var(--headline);
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  border: 2px solid var(--stroke);
-}
-
-.product-info {
-  padding: 20px;
-}
-
-.product-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 8px;
-}
-
-.product-weight {
-  font-size: 14px;
-  color: var(--paragraph);
-  margin-bottom: 16px;
-}
-
-.product-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.product-price {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.add-to-cart {
-  background: var(--button);
-  color: var(--button-text);
-  border: 3px solid var(--stroke);
-  padding: 10px 20px;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.add-to-cart:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 3px 3px 0 var(--stroke);
-}
-
 /* Services */
 .home-page .services {
   padding: 60px 0;
@@ -624,12 +459,17 @@ const handleCart = () => {
   color: var(--paragraph);
 }
 
-/* Footer (additional home-specific styles) */
+/* Home Footer Links */
+.home-footer {
+  background: var(--headline);
+  color: white;
+  padding: 60px 0 40px;
+}
+
 .home-page .footer-content {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 40px;
-  margin-bottom: 40px;
 }
 
 .footer-section h3 {
@@ -655,14 +495,6 @@ const handleCart = () => {
 
 .footer-links a:hover {
   opacity: 1;
-}
-
-.footer-bottom {
-  border-top: 2px solid rgba(255, 255, 255, 0.2);
-  padding-top: 30px;
-  text-align: center;
-  opacity: 0.6;
-  font-size: 14px;
 }
 
 /* Responsive */

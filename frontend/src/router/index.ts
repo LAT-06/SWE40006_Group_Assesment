@@ -1,6 +1,14 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { logger } from "@/lib/logger";
 import HomeView from "../views/HomeView.vue";
+
+declare module "vue-router" {
+  interface RouteMeta {
+    requiresAuth?: boolean;
+    requiresAdmin?: boolean;
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +56,16 @@ const router = createRouter({
       component: () => import("../views/AboutView.vue"),
     },
     {
+      path: "/terms",
+      name: "terms",
+      component: () => import("../views/TermsView.vue"),
+    },
+    {
+      path: "/privacy",
+      name: "privacy",
+      component: () => import("../views/PrivacyView.vue"),
+    },
+    {
       path: "/category/:slug?",
       name: "category",
       component: () => import("../views/CategoryView.vue"),
@@ -63,9 +81,39 @@ const router = createRouter({
       component: () => import("../views/ResetPasswordView.vue"),
     },
     {
+      path: "/forgot-password",
+      name: "forgot-password",
+      component: () => import("../views/ForgotPasswordView.vue"),
+    },
+    {
       path: "/auth/callback",
       name: "auth-callback",
       component: () => import("../views/AuthCallbackView.vue"),
+    },
+    {
+      path: "/careers",
+      name: "careers",
+      component: () => import("../views/CareersView.vue"),
+    },
+    {
+      path: "/help",
+      name: "help-center",
+      component: () => import("../views/HelpCenterView.vue"),
+    },
+    {
+      path: "/contact",
+      name: "contact",
+      component: () => import("../views/ContactView.vue"),
+    },
+    {
+      path: "/returns",
+      name: "returns",
+      component: () => import("../views/ReturnsView.vue"),
+    },
+    {
+      path: "/:pathMatch(.*)*",
+      name: "not-found",
+      component: () => import("../views/NotFoundView.vue"),
     },
   ],
 });
@@ -114,30 +162,29 @@ router.beforeEach(async (to, from, next) => {
 
   // Debug logging for admin access
   if (to.meta.requiresAdmin) {
-    console.log("🔍 Admin Route Access Attempt:");
-    console.log("  → Route:", to.path);
-    console.log("  → User Email:", authStore.user?.email);
-    console.log("  → Is Authenticated:", authStore.isAuthenticated);
-    console.log("  → Role (raw):", authStore.userRole);
-    console.log("  → Is Admin:", authStore.isAdmin);
-    console.log("  → Role Ready:", authStore.roleReady);
+    logger.log("Admin Route Access Attempt:", to.path, {
+      email: authStore.user?.email,
+      isAuthenticated: authStore.isAuthenticated,
+      role: authStore.userRole,
+      isAdmin: authStore.isAdmin,
+      roleReady: authStore.roleReady,
+    });
   }
 
   // Check if route requires authentication
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    console.log("Not authenticated - redirecting to login");
+    logger.log("Not authenticated - redirecting to login");
     next({ name: "login", query: { redirect: to.fullPath } });
     return;
   }
 
   // Check if route requires admin privileges
   if (to.meta.requiresAdmin && !authStore.isAdmin) {
-    console.log("Admin access denied - redirecting to home");
+    logger.log("Admin access denied - redirecting to home");
     next({ name: "home" });
     return;
   }
 
-  console.log("Access granted");
   next();
 });
 

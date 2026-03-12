@@ -55,6 +55,11 @@ const handleSignup = async () => {
     return;
   }
 
+  if (passwordStrength.value.level === "weak") {
+    signupError.value = "Password is too weak. Use a mix of uppercase, lowercase, numbers, and symbols.";
+    return;
+  }
+
   if (signupPassword.value !== signupConfirm.value) {
     signupError.value = "Passwords do not match";
     return;
@@ -72,7 +77,11 @@ const handleSignup = async () => {
   );
 
   if (error) {
-    signupError.value = error.message || "Signup failed. Please try again.";
+    if (error.message?.toLowerCase().includes("already registered") || error.message?.toLowerCase().includes("already been registered")) {
+      signupError.value = "This email is already registered. Try signing in instead.";
+    } else {
+      signupError.value = error.message || "Signup failed. Please try again.";
+    }
   } else {
     signupSuccess.value = "Account created successfully! Redirecting...";
     setTimeout(() => {
@@ -155,8 +164,8 @@ const isValidEmail = (email: string) => {
 
               <div class="form-checkbox">
                 <input v-model="agreeToTerms" type="checkbox" id="terms" required />
-                <label for="terms">I agree to the <a href="#" class="form-link">Terms</a> and
-                  <a href="#" class="form-link">Privacy Policy</a></label>
+                <label for="terms">I agree to the <router-link to="/terms" class="form-link">Terms</router-link> and
+                  <router-link to="/privacy" class="form-link">Privacy Policy</router-link></label>
               </div>
 
               <button type="submit" class="submit-btn" :disabled="authStore.loading">
