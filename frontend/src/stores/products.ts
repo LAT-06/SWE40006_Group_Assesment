@@ -1,46 +1,27 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
+import { ref, computed, shallowRef } from "vue";
 import { supabase } from "@/lib/supabase";
+import type { Product } from "@/types";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+export type { Product };
+
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) {
+  throw new Error('Missing required environment variable: VITE_API_URL');
+}
 
 async function getToken(): Promise<string | null> {
   const { data } = await supabase.auth.getSession();
   return data.session?.access_token ?? null;
 }
 
-export interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  original_price?: number;
-  description?: string;
-  nutrition?: { label: string; value: string }[];
-  storage?: string;
-  category_id?: string;
-  category?: {
-    name: string;
-    slug: string;
-  };
-  brand?: string;
-  weight?: string;
-  image_url?: string;
-  badge?: string;
-  in_stock: boolean;
-  quantity?: number;
-  dietary_tags: string[];
-  created_at?: string;
-}
-
 export const useProductStore = defineStore("products", () => {
-  const products = ref<Product[]>([]);
+  const products = shallowRef<Product[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
   // Getters
-  const featuredProducts = computed(() => {
-    // Return products with a badge, or just first 8 if none/few have badges
+  const featuredProducts = computed((): Product[] => {
     const withBadge = products.value.filter((p) => p.badge);
     if (withBadge.length > 0) return withBadge.slice(0, 8);
     return products.value.slice(0, 8);
@@ -62,13 +43,13 @@ export const useProductStore = defineStore("products", () => {
 
       if (err) throw err;
       if (page === 1) {
-        products.value = res as unknown as Product[];
+        products.value = (res ?? []) as Product[];
       } else {
-        products.value = [...products.value, ...(res as unknown as Product[])];
+        products.value = [...products.value, ...((res ?? []) as Product[])];
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching products:", err);
-      error.value = err.message;
+      error.value = err instanceof Error ? err.message : String(err);
     } finally {
       loading.value = false;
     }
@@ -84,7 +65,7 @@ export const useProductStore = defineStore("products", () => {
     if (!token) throw new Error("Not authenticated");
 
     // Remove relation object before sending
-    const { category, ...productData } = product as any;
+    const { category, ...productData } = product;
 
     const res = await fetch(`${API_URL}/products`, {
       method: "POST",
@@ -101,7 +82,7 @@ export const useProductStore = defineStore("products", () => {
     }
 
     const data: Product = await res.json();
-    products.value.unshift(data);
+    products.value = [data, ...products.value];
     return data;
   };
 
@@ -109,7 +90,7 @@ export const useProductStore = defineStore("products", () => {
     const token = await getToken();
     if (!token) throw new Error("Not authenticated");
 
-    const { category, ...updateData } = updates as any;
+    const { category, ...updateData } = updates;
 
     const res = await fetch(`${API_URL}/products/${id}`, {
       method: "PUT",
@@ -127,8 +108,11 @@ export const useProductStore = defineStore("products", () => {
 
     const data: Product = await res.json();
     const index = products.value.findIndex((p) => p.id === id);
-    if (index !== -1)
-      products.value[index] = { ...products.value[index], ...data };
+    if (index !== -1) {
+      const updated = [...products.value];
+      updated[index] = { ...updated[index], ...data };
+      products.value = updated;
+    }
     return data;
   };
 

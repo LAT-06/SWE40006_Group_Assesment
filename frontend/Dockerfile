@@ -1,17 +1,34 @@
+# Stage 1: Build
 FROM node:alpine AS build
 
-ENV VITE_SUPABASE_URL=
-ENV VITE_SUPABASE_ANON_KEY=
-ENV VITE_API_URL=
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_API_URL
 
 WORKDIR /app
 
-COPY package.json ./
-
-RUN npm install
+COPY package.json package-lock.json* ./
+RUN npm ci
 
 COPY . ./
+RUN npm run build
 
-EXPOSE 5173
+# Stage 2: Serve
+FROM nginx:stable-alpine
 
-CMD ["npm", "run", "dev", "--", "--host"]
+RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001 -G appgroup
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+RUN chown -R appuser:appgroup /usr/share/nginx/html \
+    && chown -R appuser:appgroup /var/cache/nginx \
+    && chown -R appuser:appgroup /var/log/nginx \
+    && touch /var/run/nginx.pid \
+    && chown -R appuser:appgroup /var/run/nginx.pid
+
+USER appuser
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]

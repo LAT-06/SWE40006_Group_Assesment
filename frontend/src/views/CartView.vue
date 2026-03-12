@@ -23,670 +23,224 @@
     <!-- Main Content -->
     <div class="main-content">
       <div class="container">
-        <!-- Cart View -->
+        <!-- Step 1: Cart View -->
         <div v-if="currentStep === 1" class="cart-view">
           <div class="cart-layout">
-            <!-- Cart Items -->
-            <div class="cart-section">
-              <div class="section-header">
-                <h2 class="section-title">
-                  Shopping Cart ({{ cartStore.itemCount }} items)
-                </h2>
-              </div>
-              <div class="cart-items">
-                <template v-if="cartStore.items.length > 0">
-                  <div v-for="item in cartStore.items" :key="item.id" class="cart-item"
-                    :style="item.productId && stockMap[item.productId] === 0 ? 'opacity:0.65' : ''">
-                    <div class="item-image">{{ item.icon }}</div>
-                    <div class="item-details">
-                      <div class="item-name">{{ item.name }}</div>
-                      <div class="item-size">{{ item.size }}</div>
-                      <div class="item-price">${{ item.price.toFixed(2) }}</div>
-                      <!-- Out-of-stock badge -->
-                      <div v-if="item.productId && stockMap[item.productId] === 0"
-                        style="margin-top:4px; font-size:12px; font-weight:700; color:#c0392b; background:#fdecea; padding:2px 8px; border-radius:4px; display:inline-block;">
-                        ✗ Out of stock
-                      </div>
-                      <!-- Low / over-stock warning -->
-                      <div v-else-if="item.productId && stockMap[item.productId] !== undefined && item.quantity > (stockMap[item.productId] ?? 0)"
-                        style="margin-top:4px; font-size:12px; font-weight:600; color:#856404; background:#fff3cd; padding:2px 8px; border-radius:4px; display:inline-block;">
-                        Only {{ stockMap[item.productId] }} left — your quantity will be adjusted
-                      </div>
-                    </div>
-                    <div class="item-actions">
-                      <div class="quantity-control">
-                        <button class="qty-btn minus" @click="cartStore.updateQuantity(item.id, -1)">
-                          −
-                        </button>
-                        <div class="qty-display">{{ item.quantity }}</div>
-                        <button class="qty-btn plus"
-                          :disabled="item.productId !== undefined && stockMap[item.productId] !== undefined && item.quantity >= (stockMap[item.productId] ?? 0)"
-                          @click="cartStore.updateQuantity(item.id, 1)">
-                          +
-                        </button>
-                      </div>
-                      <button class="remove-btn" @click="cartStore.removeItem(item.id)">
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                </template>
-                <div v-else class="empty-cart">
-                  <div class="empty-cart-icon">🛒</div>
-                  <div class="empty-cart-text">Your cart is empty</div>
-                  <button class="checkout-btn" @click="$router.push('/')">
-                    Start Shopping
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Order Summary -->
-            <div class="summary-section">
-              <div class="section-header">
-                <h3 class="section-title">Order Summary</h3>
-              </div>
-              <div class="summary-content">
-                <div class="summary-row">
-                  <span>Subtotal:</span>
-                  <span>${{ cartStore.subtotal.toFixed(2) }}</span>
-                </div>
-                <div class="summary-row">
-                  <span>Delivery Fee:</span>
-                  <span>{{
-                    cartStore.subtotal >= 50
-                      ? "FREE"
-                      : `$${cartStore.deliveryFee.toFixed(2)}`
-                  }}</span>
-                </div>
-                <div v-if="cartStore.discount > 0" class="summary-row">
-                  <span>Discount:</span>
-                  <span style="color: #27ae60">-${{ cartStore.discount.toFixed(2) }}</span>
-                </div>
-                <div class="summary-row total">
-                  <span>Total:</span>
-                  <span>${{ cartStore.total.toFixed(2) }}</span>
-                </div>
-
-                <div class="delivery-info">
-                  <div class="delivery-info-title">
-                    <span>🚚</span>
-                    <span>Delivery Information</span>
-                  </div>
-                  <div class="delivery-info-text">
-                    Free delivery on orders over $50
-                  </div>
-                </div>
-
-                <div class="promo-code">
-                  <div class="promo-input-group">
-                    <input v-model="promoCode" type="text" class="promo-input" placeholder="Promo code" />
-                    <button class="promo-btn" @click="applyPromo">Apply</button>
-                  </div>
-                </div>
-
-                <button class="checkout-btn" :disabled="cartStore.items.length === 0 || stockProblems.length > 0" @click="proceedToCheckout">
-                  Proceed to Checkout
-                </button>
-                <p v-if="stockProblems.length > 0"
-                  style="color:#c0392b; font-size:13px; margin:8px 0 0; font-weight:600;">
-                  Some items exceed available stock. Please update quantities before continuing.
-                </p>
-                <button class="continue-shopping" @click="$router.push('/')">
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
+            <CartItemList :stock-map="stockMap" />
+            <OrderSummary
+              mode="cart"
+              :promo-code="promoCode"
+              :has-stock-problems="stockProblems.length > 0"
+              @update:promo-code="promoCode = $event"
+              @apply-promo="applyPromo"
+              @proceed-to-checkout="proceedToCheckout"
+              @continue-shopping="router.push('/')"
+            />
           </div>
         </div>
 
-        <!-- Checkout View -->
+        <!-- Step 2: Checkout View -->
         <div v-else-if="currentStep === 2" class="checkout-section">
           <div class="checkout-layout">
-            <!-- Checkout Form -->
-            <div>
-              <!-- Delivery Address -->
-              <div class="form-section">
-                <h3 class="form-section-title">Delivery Address</h3>
-
-                <!-- Saved address quick-fill -->
-                <div v-if="savedAddresses.length > 0" style="margin-bottom: 16px;">
-                  <p style="font-size:13px; color:#666; margin-bottom:8px;">Use a saved address:</p>
-                  <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                    <button v-for="addr in savedAddresses" :key="addr.id" type="button"
-                      style="padding:8px 14px; border:2px solid var(--stroke); background:var(--bg); border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; color: var(--button-text);"
-                      @click="fillFromAddress(addr)">
-                      {{ addr.label }}{{ addr.is_default ? ' ★' : '' }}
-                    </button>
-                  </div>
-                </div>
-                <form @submit.prevent="validateAndContinue">
-                  <div class="form-group">
-                    <label class="form-label">Full Name *</label>
-                    <input v-model="checkoutForm.fullName" type="text" class="form-input"
-                      placeholder="Enter your full name" required />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Phone Number *</label>
-                    <input v-model="checkoutForm.phone" type="tel" class="form-input" placeholder="+84 123 456 789"
-                      required />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Street Address *</label>
-                    <input v-model="checkoutForm.address" type="text" class="form-input"
-                      placeholder="House number and street name" required />
-                  </div>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label">Area / Suburb *</label>
-                      <select v-model="checkoutForm.district" class="form-select" @change="updateDeliveryZone" required>
-                        <option value="">Select your area</option>
-                        <optgroup v-for="z in deliveryZones" :key="z.id" :label="z.name + (z.is_active ? '' : ' (Unavailable)')">
-                          <option v-for="suburb in (z.suburbs ?? [])" :key="suburb" :value="suburb">
-                            {{ suburb }}
-                          </option>
-                        </optgroup>
-                        <optgroup v-if="deliveryZones.length === 0" label="Loading areas…" disabled></optgroup>
-                      </select>
-
-                      <!-- Zone availability notice -->
-                      <div v-if="zoneNotice?.type === 'unavailable'"
-                        style="margin-top:8px; padding:12px 14px; background:#fff3cd; border:1px solid #ffc107; border-radius:6px; display:flex; align-items:flex-start; gap:10px;">
-                        <span style="font-size:18px; flex-shrink:0;">⚠️</span>
-                        <div>
-                          <strong style="font-size:13px; color:#856404; display:block;">Delivery not available for this area</strong>
-                          <span style="font-size:13px; color:#856404;">
-                            {{ zoneNotice.zoneName
-                              ? `Sorry, ${zoneNotice.zoneName} is temporarily not accepting deliveries.`
-                              : 'Sorry, we do not currently deliver to this area.' }}
-                            Please select a different area or check back later.
-                          </span>
-                        </div>
-                      </div>
-                      <div v-else-if="zoneNotice?.type === 'ok'"
-                        style="margin-top:8px; padding:8px 12px; background:#d4edda; border:1px solid #28a745; border-radius:6px; font-size:13px; color:#155724;">
-                        ✓ Delivery available · {{ zoneNotice.zoneName }}
-                      </div>
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label">City *</label>
-                      <input type="text" class="form-input" value="Ho Chi Minh City" readonly />
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Delivery Notes (Optional)</label>
-                    <textarea v-model="checkoutForm.notes" class="form-input" rows="3"
-                      placeholder="Special instructions for delivery"></textarea>
-                  </div>
-                </form>
-              </div>
-
-              <!-- Delivery Slot -->
-              <div class="form-section">
-                <h3 class="form-section-title">
-                  Select Delivery Slot
-                  <span style="font-size: 12px; font-weight: 400; color: #666">(optional)</span>
-                </h3>
-                <div v-if="slotsLoading" style="padding: 12px; color: #666">
-                  Loading available slots…
-                </div>
-                <div v-else-if="deliverySlots.length === 0" style="padding: 12px; color: #999; font-size: 14px">
-                  No delivery slots available right now. You can select one
-                  later from your profile.
-                </div>
-                <div v-else class="slot-grid">
-                  <div v-for="slot in deliverySlots" :key="slot.id" class="slot-option" :class="{
-                    selected: selectedSlot === slot.id,
-                    unavailable: !slot.available,
-                  }" @click="slot.available && (selectedSlot = slot.id)">
-                    <div class="slot-time">{{ slot.time }}</div>
-                    <div class="slot-availability">
-                      {{ slot.slots }} spots left
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Payment Method -->
-              <div class="form-section">
-                <h3 class="form-section-title">Payment Method</h3>
-                <div class="payment-methods">
-                  <div v-for="method in paymentMethods" :key="method.id" class="payment-option"
-                    :class="{ selected: selectedPayment === method.id }" @click="selectedPayment = method.id">
-                    <div class="payment-icon">{{ method.icon }}</div>
-                    <div>
-                      <div class="payment-name">{{ method.name }}</div>
-                      <div class="payment-description">
-                        {{ method.description }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div style="margin-top: 24px">
-                <button class="back-to-cart" @click="currentStep = 1">
-                  ← Back to Cart
-                </button>
-                <button class="checkout-btn" style="width: auto; display: inline-block; padding: 14px 40px"
-                  :disabled="placingOrder || zoneNotice?.type === 'unavailable'" @click="placeOrder">
-                  {{ placingOrder ? "Placing Order…" : "Place Order" }}
-                </button>
-                <p v-if="zoneNotice?.type === 'unavailable'" style="margin-top:8px; font-size:13px; color:#856404; font-weight:600;">
-                  ⚠️ Please select an area we deliver to before placing your order.
-                </p>
-              </div>
-            </div>
-
-            <!-- Order Summary (Checkout) -->
-            <div class="summary-section">
-              <div class="section-header">
-                <h3 class="section-title">Order Summary</h3>
-              </div>
-              <div class="summary-content">
-                <div class="summary-row">
-                  <span>Subtotal:</span>
-                  <span>${{ cartStore.subtotal.toFixed(2) }}</span>
-                </div>
-                <div class="summary-row">
-                  <span>Delivery Fee:</span>
-                  <span>{{
-                    cartStore.subtotal >= 50
-                      ? "FREE"
-                      : `$${cartStore.deliveryFee.toFixed(2)}`
-                  }}</span>
-                </div>
-                <div v-if="cartStore.discount > 0" class="summary-row">
-                  <span>Discount:</span>
-                  <span style="color: #27ae60">-${{ cartStore.discount.toFixed(2) }}</span>
-                </div>
-                <div class="summary-row total">
-                  <span>Total:</span>
-                  <span>${{ cartStore.total.toFixed(2) }}</span>
-                </div>
-
-                <div class="delivery-info">
-                  <div class="delivery-info-title">
-                    <span>📦</span>
-                    <span>Items in Order</span>
-                  </div>
-                  <div style="margin-top: 12px">
-                    <div v-for="item in cartStore.items" :key="item.id" style="
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 8px;
-                        font-size: 14px;
-                        color: var(--headline);
-                        font-weight: 500;
-                      ">
-                      <span>{{ item.name }} × {{ item.quantity }}</span>
-                      <span style="font-weight: 700">${{ (item.price * item.quantity).toFixed(2) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <CheckoutForm
+              v-model:placing-order="placingOrder"
+              @back-to-cart="currentStep = 1"
+              @place-order="placeOrder"
+              @update-delivery-fee="cartStore.updateDeliveryFee($event)"
+            />
+            <OrderSummary mode="checkout" />
           </div>
         </div>
       </div>
     </div>
 
     <!-- Success Overlay -->
-    <div v-if="showSuccess" class="success-overlay" @click="closeSuccess">
-      <div class="success-content" @click.stop>
-        <h2 class="success-title">Order Placed Successfully!</h2>
-        <div class="order-number">Order #ORD-{{ orderId }}</div>
-        <p class="success-text">
-          Thank you for your order! We'll send you a confirmation email shortly.
-          You can track your delivery in real-time.
-        </p>
-        <!-- Adjusted items notice -->
-        <div v-if="orderAdjustedItems.length > 0"
-          style="background:#fff3cd; border:1px solid #ffc107; padding:12px 16px; border-radius:8px; margin:12px 0; text-align:left;">
-          <p style="font-weight:700; color:#856404; margin:0 0 6px;">⚠️ Some quantities were adjusted to match available stock:</p>
-          <ul style="margin:0; padding-left:18px;">
-            <li v-for="adj in orderAdjustedItems" :key="adj.product_id" style="font-size:13px; color:#856404;">
-              Requested {{ adj.requested }}, ordered {{ adj.ordered }}
-            </li>
-          </ul>
-        </div>
-        <button class="checkout-btn" style="margin-bottom: 12px" @click="closeSuccess">
-          Track Order
-        </button>
-        <button class="continue-shopping" style="margin-top: 0" @click="continueShopping">
-          Continue Shopping
-        </button>
-      </div>
-    </div>
+    <OrderSuccessOverlay
+      v-if="showSuccess"
+      :order-id="orderId"
+      :adjusted-items="orderAdjustedItems"
+      @track-order="closeSuccess"
+      @continue-shopping="continueShopping"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { useCartStore } from "@/stores/cart";
-import { supabase } from "@/lib/supabase";
-import { useAuthStore } from "@/stores/auth";
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useCartStore } from '@/stores/cart'
+import { useToast } from '@/composables/useToast'
+import { supabase } from '@/lib/supabase'
+import CartItemList from '@/components/cart/CartItemList.vue'
+import OrderSummary from '@/components/cart/OrderSummary.vue'
+import CheckoutForm from '@/components/cart/CheckoutForm.vue'
+import OrderSuccessOverlay from '@/components/cart/OrderSuccessOverlay.vue'
 
-const router = useRouter();
-const cartStore = useCartStore();
-const authStore = useAuthStore();
+const router = useRouter()
+const cartStore = useCartStore()
+const toast = useToast()
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL
 
-const currentStep = ref(1);
-const promoCode = ref("");
-const selectedSlot = ref<string | null>(null);
-const selectedPayment = ref<string | null>(null);
-const showSuccess = ref(false);
-const orderId = ref<string>("");
-const placingOrder = ref(false);
-const orderAdjustedItems = ref<{ product_id: string; ordered: number; requested: number }[]>([]);
+const currentStep = ref(1)
+const promoCode = ref('')
+const showSuccess = ref(false)
+const orderId = ref('')
+const placingOrder = ref(false)
+const orderAdjustedItems = ref<{ product_id: string; ordered: number; requested: number }[]>([])
 
-// ─── Stock availability map: productId → available quantity ─────────────
-const stockMap = ref<Record<string, number>>({});
+// ─── Stock availability ──────────────────────────────────────────────────
+const stockMap = ref<Record<string, number>>({})
 
 const fetchCartStock = async () => {
-  const productIds = cartStore.items.map((i) => i.productId).filter(Boolean) as string[];
-  if (productIds.length === 0) return;
-  const { data } = await supabase
-    .from("products")
-    .select("id, quantity")
-    .in("id", productIds);
+  const productIds = cartStore.items.map((i) => i.productId).filter(Boolean) as string[]
+  if (productIds.length === 0) return
+  const { data } = await supabase.from('products').select('id, quantity').in('id', productIds)
   if (data) {
-    const map: Record<string, number> = {};
-    data.forEach((p: any) => { map[p.id] = p.quantity ?? 0; });
-    stockMap.value = map;
+    const map: Record<string, number> = {}
+    data.forEach((p) => { map[p.id] = p.quantity ?? 0 })
+    stockMap.value = map
   }
-};
+}
 
-// Items in cart that are out-of-stock or over-stock
 const stockProblems = computed(() =>
   cartStore.items.filter((item) => {
-    if (!item.productId) return false;
-    const avail = stockMap.value[item.productId];
-    return avail !== undefined && avail < item.quantity;
-  })
-);
+    if (!item.productId) return false
+    const avail = stockMap.value[item.productId]
+    return avail !== undefined && avail < item.quantity
+  }),
+)
 
-const checkoutForm = ref({
-  fullName: "",
-  phone: "",
-  address: "",
-  district: "",
-  notes: "",
-});
-
-// ─── MARK: Saved Addresses ───────────────────────────────────────────────
-interface SavedAddress { id: string; label: string; full_name: string; phone: string; address: string; district: string; is_default: boolean; }
-const savedAddresses = ref<SavedAddress[]>([]);
-
-const fetchSavedAddresses = async () => {
-  const userId = authStore.user?.id;
-  if (!userId) return;
-  const { data } = await supabase
-    .from("user_addresses")
-    .select("*")
-    .eq("user_id", userId)
-    .order("is_default", { ascending: false });
-  if (data) savedAddresses.value = data;
-};
-
-const fillFromAddress = (addr: SavedAddress) => {
-  checkoutForm.value.fullName = addr.full_name;
-  checkoutForm.value.phone = addr.phone;
-  checkoutForm.value.address = addr.address;
-  checkoutForm.value.district = addr.district;
-  updateDeliveryZone();
-};
-interface ApiSlot {
-  id: string;
-  slot_date: string;
-  start_time: string;
-  end_time: string;
-  capacity: number;
-  booked: number;
-  status: string;
-  delivery_zones?: { name: string };
-}
-
-// ─── Delivery Zones ──────────────────────────────────────────────────────
-interface ApiZone {
-  id: string;
-  name: string;
-  description: string | null;
-  is_active: boolean;
-  suburbs: string[];
-}
-
-const deliveryZones = ref<ApiZone[]>([]);
-const zoneNotice = ref<{ type: 'unavailable' | 'ok'; zoneName: string } | null>(null);
-
-const allSuburbs = computed(() =>
-  deliveryZones.value.flatMap((z) => z.suburbs ?? []).sort()
-);
-
-const fetchDeliveryZones = async () => {
-  try {
-    const res = await fetch(`${API_URL}/delivery-zones`);
-    if (res.ok) deliveryZones.value = await res.json();
-  } catch (e) {
-    console.error('Failed to fetch delivery zones', e);
-  }
-};
-
-const deliverySlots = ref<
-  { id: string; time: string; slots: number; available: boolean }[]
->([]);
-const slotsLoading = ref(false);
-
-const fetchDeliverySlots = async () => {
-  slotsLoading.value = true;
-  try {
-    const res = await fetch(`${API_URL}/delivery-slots`);
-    if (res.ok) {
-      const data: ApiSlot[] = await res.json();
-      deliverySlots.value = data.map((s) => {
-        const date = new Date(s.slot_date).toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-        });
-        const zone = s.delivery_zones?.name
-          ? ` · ${s.delivery_zones.name}`
-          : '';
-        return {
-          id: s.id,
-          time: `${date} · ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)}${zone}`,
-          slots: s.capacity - s.booked,
-          available: s.status === 'open' && s.booked < s.capacity,
-        };
-      });
-    }
-  } catch (e) {
-    console.error('Failed to fetch delivery slots', e);
-  } finally {
-    slotsLoading.value = false;
-  }
-};
-
-onMounted(async () => {
-  await Promise.all([fetchDeliverySlots(), fetchDeliveryZones(), fetchSavedAddresses(), fetchCartStock()]);
-});
-
-const paymentMethods = ref([
-  {
-    id: 'card',
-    icon: '💳',
-    name: 'Credit/Debit Card',
-    description: 'Pay securely online',
-  },
-  {
-    id: 'google',
-    icon: '🔵',
-    name: 'Google Pay',
-    description: 'Fast & secure payment',
-  },
-  {
-    id: 'cash',
-    icon: '💵',
-    name: 'Cash on Delivery',
-    description: 'Pay when you receive',
-  },
-]);
-
+// ─── Promo ───────────────────────────────────────────────────────────────
 async function applyPromo() {
-  const code = promoCode.value.trim();
-  if (!code) return;
+  const code = promoCode.value.trim()
+  if (!code) return
   try {
     const res = await fetch(`${API_URL}/promo/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, order_total: cartStore.subtotal }),
-    });
-    const data = await res.json();
+    })
+    const data = await res.json()
     if (!res.ok) {
-      alert(data.error || 'Invalid promo code');
-      return;
+      toast.error(data.error || 'Invalid promo code')
+      return
     }
-    cartStore.applyPromoCode(code, data.discount_amount);
-    alert(`Promo applied! You save $${data.discount_amount.toFixed(2)}`);
+    cartStore.applyPromoCode(code, data.discount_amount)
+    toast.success(`Promo applied! You save $${data.discount_amount.toFixed(2)}`)
   } catch {
-    alert('Failed to validate promo code. Try again.');
+    toast.error('Failed to validate promo code. Try again.')
   }
 }
 
+// ─── Navigation ──────────────────────────────────────────────────────────
 function proceedToCheckout() {
-  if (cartStore.items.length === 0) return;
-  currentStep.value = 2;
-  window.scrollTo(0, 0);
+  if (cartStore.items.length === 0) return
+  currentStep.value = 2
+  window.scrollTo(0, 0)
 }
 
-function updateDeliveryZone() {
-  const selected = checkoutForm.value.district;
-  zoneNotice.value = null;
-  if (!selected) return;
-
-  // Find which zone covers this suburb
-  const matchedZone = deliveryZones.value.find(
-    (z) => (z.suburbs ?? []).some((s) => s.toLowerCase() === selected.toLowerCase())
-  );
-
-  if (!matchedZone) {
-    // suburb not in any configured zone — treat as unavailable
-    zoneNotice.value = { type: 'unavailable', zoneName: '' };
-  } else if (!matchedZone.is_active) {
-    zoneNotice.value = { type: 'unavailable', zoneName: matchedZone.name };
-  } else {
-    zoneNotice.value = { type: 'ok', zoneName: matchedZone.name };
-    cartStore.updateDeliveryFee(matchedZone.id);
+// ─── Place Order ─────────────────────────────────────────────────────────
+async function placeOrder(payload: {
+  checkoutForm: { fullName: string; phone: string; address: string; district: string; notes: string }
+  selectedSlot: string | null
+  selectedPayment: string | null
+  zoneUnavailable: boolean
+}) {
+  if (payload.zoneUnavailable) {
+    toast.warning('Sorry, we do not deliver to your selected area. Please choose a different area.')
+    return
   }
-}
-
-function validateAndContinue() {
-  // Form validation is handled by HTML5 required attributes
-}
-
-async function placeOrder() {
-  if (zoneNotice.value?.type === 'unavailable') {
-    alert('Sorry, we do not deliver to your selected area. Please choose a different area.');
-    return;
+  if (!payload.checkoutForm.fullName || !payload.checkoutForm.phone || !payload.checkoutForm.address || !payload.checkoutForm.district) {
+    toast.warning('Please fill in all required fields')
+    return
+  }
+  const phoneDigits = payload.checkoutForm.phone.replace(/\D/g, '')
+  if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+    toast.warning('Please enter a valid phone number (8-15 digits)')
+    return
+  }
+  if (payload.checkoutForm.fullName.trim().length < 2) {
+    toast.warning('Please enter a valid full name')
+    return
+  }
+  if (!payload.selectedPayment) {
+    toast.warning('Please select a payment method')
+    return
   }
 
-  if (
-    !checkoutForm.value.fullName ||
-    !checkoutForm.value.phone ||
-    !checkoutForm.value.address ||
-    !checkoutForm.value.district
-  ) {
-    alert("Please fill in all required fields");
-    return;
-  }
-
-  if (!selectedPayment.value) {
-    alert("Please select a payment method");
-    return;
-  }
-
-  placingOrder.value = true;
-  currentStep.value = 3;
+  placingOrder.value = true
+  currentStep.value = 3
 
   try {
-    const { data: session } = await supabase.auth.getSession();
-    const token = session.session?.access_token;
+    const { data: session } = await supabase.auth.getSession()
+    const token = session.session?.access_token
     if (!token) {
-      alert("Please log in to place an order.");
-      router.push("/login");
-      return;
+      toast.warning('Please log in to place an order.')
+      router.push('/login')
+      return
     }
 
-    // Map Pinia cart items to API format (only items with a productId)
-    const items = cartStore.items
-      .filter((i) => i.productId)
-      .map((i) => ({ product_id: i.productId, quantity: i.quantity }));
-
+    const items = cartStore.items.filter((i) => i.productId).map((i) => ({ product_id: i.productId, quantity: i.quantity }))
     if (items.length === 0) {
-      alert(
-        "Your cart has no valid products. Please add items from the store.",
-      );
-      currentStep.value = 2;
-      return;
+      toast.warning('Your cart has no valid products. Please add items from the store.')
+      currentStep.value = 2
+      return
     }
 
-    const body: any = {
+    const body: Record<string, unknown> = {
       shipping_address: {
-        name: checkoutForm.value.fullName,
-        phone: checkoutForm.value.phone,
-        address: `${checkoutForm.value.address}, ${checkoutForm.value.district}`,
+        name: payload.checkoutForm.fullName,
+        phone: payload.checkoutForm.phone,
+        address: `${payload.checkoutForm.address}, ${payload.checkoutForm.district}`,
       },
       items,
-      notes: checkoutForm.value.notes || undefined,
-    };
-
-    if (selectedSlot.value) body.delivery_slot_id = selectedSlot.value;
+      notes: payload.checkoutForm.notes || undefined,
+    }
+    if (payload.selectedSlot) body.delivery_slot_id = payload.selectedSlot
 
     const res = await fetch(`${API_URL}/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
-    });
+    })
 
-    const data = await res.json();
+    const data = await res.json()
     if (!res.ok) {
-      // Out-of-stock error from backend
       if (data.out_of_stock) {
-        alert(`Sorry, "${data.error}" Please update your cart and try again.`);
-        await fetchCartStock();
-        currentStep.value = 1;
-        return;
+        toast.error(`Sorry, "${data.error}" Please update your cart and try again.`)
+        await fetchCartStock()
+        currentStep.value = 1
+        return
       }
-      throw new Error(data.error || "Failed to place order");
+      throw new Error(data.error || 'Failed to place order')
     }
 
-    orderId.value = data.order_id;
-    orderAdjustedItems.value = data.adjusted_items ?? [];
-    cartStore.clearCart();
-    showSuccess.value = true;
-  } catch (e: any) {
-    alert("Error placing order: " + e.message);
-    currentStep.value = 2;
+    orderId.value = data.order_id
+    orderAdjustedItems.value = data.adjusted_items ?? []
+    cartStore.clearCart()
+    showSuccess.value = true
+  } catch (e: unknown) {
+    toast.error('Error placing order: ' + (e instanceof Error ? e.message : String(e)))
+    currentStep.value = 2
   } finally {
-    placingOrder.value = false;
+    placingOrder.value = false
   }
 }
 
 function closeSuccess() {
-  showSuccess.value = false;
-  router.push(`/order-tracking/${orderId.value}`);
+  showSuccess.value = false
+  router.push(`/order-tracking/${orderId.value}`)
 }
 
 function continueShopping() {
-  showSuccess.value = false;
-  router.push("/");
+  showSuccess.value = false
+  router.push('/')
 }
+
+onMounted(() => {
+  fetchCartStock()
+})
 </script>
 
 <style scoped>
@@ -784,477 +338,15 @@ function continueShopping() {
   gap: 30px;
 }
 
-/* Cart Items */
-.cart-section {
-  background: white;
-  border: 3px solid var(--stroke);
-}
-
-.section-header {
-  padding: 24px;
-  border-bottom: 3px solid var(--stroke);
-}
-
-.section-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.cart-items {
-  padding: 24px;
-}
-
-.cart-item {
-  display: grid;
-  grid-template-columns: 80px 1fr auto;
-  gap: 20px;
-  padding: 20px;
-  border: 3px solid var(--stroke);
-  margin-bottom: 16px;
-  transition: all 0.2s;
-}
-
-.cart-item:hover {
-  background: var(--main);
-}
-
-.item-image {
-  font-size: 60px;
-  text-align: center;
-}
-
-.item-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.item-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.item-size {
-  font-size: 14px;
-  color: var(--headline);
-  font-weight: 500;
-}
-
-.item-price {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.item-actions {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.quantity-control {
-  display: flex;
-  align-items: center;
-  border: 3px solid var(--stroke);
-}
-
-.qty-btn {
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: white;
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: 700;
-  transition: background 0.2s;
-}
-
-.qty-btn:hover {
-  background: #8bd3dd;
-}
-
-.qty-btn.minus {
-  border-right: 3px solid var(--stroke);
-}
-
-.qty-btn.plus {
-  border-left: 3px solid var(--stroke);
-}
-
-.qty-display {
-  width: 50px;
-  text-align: center;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.remove-btn {
-  background: none;
-  border: none;
-  color: #e74c3c;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.remove-btn:hover {
-  color: #c0392b;
-}
-
-.empty-cart {
-  text-align: center;
-  padding: 60px 24px;
-}
-
-.empty-cart-icon {
-  font-size: 80px;
-  margin-bottom: 20px;
-}
-
-.empty-cart-text {
-  font-size: 20px;
-  color: var(--paragraph);
-  margin-bottom: 24px;
-}
-
-/* Order Summary */
-.summary-section {
-  background: white;
-  border: 3px solid var(--stroke);
-  height: fit-content;
-  position: sticky;
-  top: 20px;
-}
-
-.summary-content {
-  padding: 24px;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  font-size: 16px;
-  color: var(--paragraph);
-}
-
-.summary-row.total {
-  border-top: 3px solid var(--stroke);
-  margin-top: 12px;
-  padding-top: 20px;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.delivery-info {
-  background: var(--main);
-  border: 3px solid var(--stroke);
-  padding: 16px;
-  margin: 16px 0;
-}
-
-.delivery-info-title {
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.delivery-info-text {
-  font-size: 14px;
-  color: var(--paragraph);
-}
-
-.promo-code {
-  margin: 16px 0;
-}
-
-.promo-input-group {
-  display: flex;
-  gap: 0;
-}
-
-.promo-input {
-  flex: 1;
-  padding: 12px 16px;
-  border: 3px solid var(--stroke);
-  border-right: none;
-  outline: none;
-}
-
-.promo-btn {
-  padding: 12px 20px;
-  border: 3px solid var(--stroke);
-  background: white;
-  font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-
-.promo-btn:hover {
-  background: #8bd3dd;
-}
-
-.checkout-btn {
-  width: 100%;
-  background: #f582ae;
-  color: var(--button-text);
-  border: 3px solid var(--stroke);
-  padding: 18px;
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 16px;
-}
-
-.checkout-btn:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: 5px 5px 0 var(--stroke);
-}
-
-.checkout-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.continue-shopping {
-  width: 100%;
-  background: white;
-  color: var(--headline);
-  border: 3px solid var(--stroke);
-  padding: 14px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
-  margin-top: 12px;
-}
-
-.continue-shopping:hover {
-  background: var(--main);
-}
-
-/* Checkout Form */
 .checkout-section {
   display: block;
 }
 
-.form-section {
-  background: white;
-  border: 3px solid var(--stroke);
-  padding: 24px;
-  margin-bottom: 20px;
-}
-
-.form-section-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-label {
-  display: block;
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-
-.form-input,
-.form-select {
-  width: 100%;
-  padding: 14px 16px;
-  border: 3px solid var(--stroke);
-  font-size: 16px;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.form-input:focus,
-.form-select:focus {
-  border-color: #f582ae;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.slot-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.slot-option {
-  padding: 16px;
-  border: 3px solid var(--stroke);
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: center;
-}
-
-.slot-option:hover {
-  background: var(--main);
-}
-
-.slot-option.selected {
-  background: #f582ae;
-  border-color: var(--stroke);
-}
-
-.slot-time {
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 4px;
-}
-
-.slot-availability {
-  font-size: 12px;
-  color: var(--paragraph);
-}
-
-.slot-option.unavailable {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.payment-methods {
-  display: grid;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.payment-option {
-  padding: 16px;
-  border: 3px solid var(--stroke);
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.payment-option:hover {
-  background: var(--main);
-}
-
-.payment-option.selected {
-  background: #8bd3dd;
-  border-color: var(--stroke);
-}
-
-.payment-icon {
-  font-size: 24px;
-}
-
-.payment-name {
-  font-weight: 700;
-  color: var(--headline);
-}
-
-.payment-description {
-  font-size: 12px;
-  color: var(--headline);
-  font-weight: 500;
-}
-
-.back-to-cart {
-  background: white;
-  color: var(--headline);
-  border: 3px solid var(--stroke);
-  padding: 14px 24px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.2s;
-  margin-right: 12px;
-}
-
-.back-to-cart:hover {
-  background: var(--main);
-}
-
-/* Success Message */
-.success-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 24, 88, 0.9);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.success-content {
-  background: white;
-  border: 3px solid var(--stroke);
-  box-shadow: 8px 8px 0 var(--stroke);
-  padding: 60px;
-  text-align: center;
-  max-width: 500px;
-}
-
-.success-icon {
-  font-size: 80px;
-  margin-bottom: 24px;
-}
-
-.success-title {
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 16px;
-}
-
-.success-text {
-  font-size: 16px;
-  color: var(--paragraph);
-  margin-bottom: 32px;
-}
-
-.order-number {
-  background: var(--main);
-  border: 3px solid var(--stroke);
-  padding: 16px;
-  font-weight: 700;
-  color: var(--headline);
-  margin-bottom: 24px;
-}
-
 /* Responsive */
 @media (max-width: 968px) {
-
   .cart-layout,
   .checkout-layout {
     grid-template-columns: 1fr;
-  }
-
-  .summary-section {
-    position: static;
   }
 
   .steps {
@@ -1263,26 +355,6 @@ function continueShopping() {
 
   .step-label {
     display: none;
-  }
-
-  .cart-item {
-    grid-template-columns: 60px 1fr;
-  }
-
-  .item-actions {
-    grid-column: 2;
-    flex-direction: row;
-    justify-content: space-between;
-  }
-}
-
-@media (max-width: 640px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
-
-  .slot-grid {
-    grid-template-columns: 1fr;
   }
 }
 </style>

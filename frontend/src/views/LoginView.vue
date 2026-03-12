@@ -110,7 +110,7 @@ const isValidEmail = (email: string) => {
               </button>
 
               <div style="text-align: center; margin-bottom: 20px">
-                <a href="#" class="form-link">Forgot password?</a>
+                <router-link to="/forgot-password" class="form-link">Forgot password?</router-link>
               </div>
             </form>
 
