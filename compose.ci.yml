@@ -12,7 +12,7 @@ services:
 
   # ── MARK: Jenkins ───────────────────────────────────────────────────────────────
   jenkins:
-    image: jenkins/jenkins:lts
+    image: dhi.io/jenkins:2.555
     container_name: jenkins
     restart: unless-stopped
     ports:
@@ -28,7 +28,7 @@ services:
 
   # ── MARK: SonarQube ─────────────────────────────────────────────────────────────
   sonarqube:
-    image: sonarqube:community
+    image: dhi.io/sonarqube:26
     container_name: sonarqube
     restart: unless-stopped
     depends_on:
@@ -53,7 +53,7 @@ services:
 
   # ── MARK: PostgreSQL (SonarQube database) ───────────────────────────────────────
   sonarqube_db:
-    image: postgres:15-alpine
+    image: dhi.io/postgres:18-alpine3.22
     container_name: sonarqube_db
     restart: unless-stopped
     environment:
