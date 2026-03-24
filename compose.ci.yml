@@ -10,7 +10,7 @@
 
 services:
 
-  # ── Jenkins ───────────────────────────────────────────────────────────────
+  # ── MARK: Jenkins ───────────────────────────────────────────────────────────────
   jenkins:
     image: jenkins/jenkins:lts
     container_name: jenkins
@@ -26,7 +26,7 @@ services:
       # Skip the initial setup wizard — remove this line if you want the wizard
       JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
 
-  # ── SonarQube ─────────────────────────────────────────────────────────────
+  # ── MARK: SonarQube ─────────────────────────────────────────────────────────────
   sonarqube:
     image: sonarqube:community
     container_name: sonarqube
@@ -51,7 +51,7 @@ services:
         soft: 65536
         hard: 65536
 
-  # ── PostgreSQL (SonarQube database) ───────────────────────────────────────
+  # ── MARK: PostgreSQL (SonarQube database) ───────────────────────────────────────
   sonarqube_db:
     image: postgres:15-alpine
     container_name: sonarqube_db

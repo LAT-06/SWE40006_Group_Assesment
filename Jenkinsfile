@@ -10,7 +10,7 @@ pipeline {
 
     stages {
 
-        // ── 1. INSTALL ─────────────────────────────────────────────────────────
+        // ── 1. MARK: INSTALL ─────────────────────────────────────────────────────────
         stage('Install') {
             parallel {
                 stage('Frontend') {
@@ -22,7 +22,7 @@ pipeline {
             }
         }
 
-        // ── 2. CODE SCAN ───────────────────────────────────────────────────────
+        // ── 2. MARK: CODE SCAN ───────────────────────────────────────────────────────
         //    Runs on every branch and every PR.
         //    All sub-stages run in parallel; any failure blocks the pipeline.
         stage('Code Scan') {
@@ -69,7 +69,7 @@ pipeline {
             }
         }
 
-        // ── 3. SONARQUBE ANALYSIS ──────────────────────────────────────────────
+        // ── 3. MARK: SONARQUBE ANALYSIS ──────────────────────────────────────────────
         //    Scans source code and uploads coverage to SonarQube.
         //    Requires: SonarQube Scanner plugin + a SonarQube server named
         //    'SonarQube' configured in Manage Jenkins → Configure System.
@@ -84,7 +84,7 @@ pipeline {
             }
         }
 
-        // ── 4. QUALITY GATE ────────────────────────────────────────────────────
+        // ── 4. MARK: QUALITY GATE ────────────────────────────────────────────────────
         //    Jenkins waits for SonarQube to finish analysis and return a pass/fail.
         //    If the Quality Gate fails (e.g. coverage < threshold, new bugs found)
         //    this stage marks the build as FAILED and blocks deploy stages.
@@ -99,7 +99,7 @@ pipeline {
             }
         }
 
-        // ── 5. BUILD ───────────────────────────────────────────────────────────
+        // ── 5. MARK: BUILD ───────────────────────────────────────────────────────────
         //    Build artefacts needed for deployment.
         stage('Build') {
             parallel {
@@ -129,7 +129,7 @@ pipeline {
             }
         }
 
-        // ── 6. PACKAGE LAMBDA ─────────────────────────────────────────────────
+        // ── 6. MARK: PACKAGE LAMBDA ─────────────────────────────────────────────────
         stage('Package Lambda') {
             when { branch 'main' }
             steps {
@@ -149,7 +149,7 @@ pipeline {
             }
         }
 
-        // ── 7. DEPLOY FRONTEND → S3 + CloudFront ──────────────────────────────
+        // ── 7. MARK: DEPLOY FRONTEND → S3 + CloudFront ──────────────────────────────
         stage('Deploy Frontend') {
             when { branch 'main' }
             steps {
@@ -182,7 +182,7 @@ pipeline {
             }
         }
 
-        // ── 8. DEPLOY BACKEND → Lambda via Terraform ──────────────────────────
+        // ── 8. MARK: DEPLOY BACKEND → Lambda via Terraform ──────────────────────────
         stage('Deploy Backend') {
             when { branch 'main' }
             steps {
