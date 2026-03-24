@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:alpine AS build
+FROM dhi.io/node:25-debian12-dev AS build
 
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
@@ -8,27 +8,17 @@ ARG VITE_API_URL
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN ["npm", "ci"]
 
 COPY . ./
-RUN npm run build
+RUN ["npm", "run", "build"]
 
 # Stage 2: Serve
-FROM nginx:stable-alpine
-
-RUN addgroup -g 1001 -S appgroup && adduser -S appuser -u 1001 -G appgroup
+FROM dhi.io/nginx:1-debian12
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-RUN chown -R appuser:appgroup /usr/share/nginx/html \
-    && chown -R appuser:appgroup /var/cache/nginx \
-    && chown -R appuser:appgroup /var/log/nginx \
-    && touch /var/run/nginx.pid \
-    && chown -R appuser:appgroup /var/run/nginx.pid
-
-USER appuser
-
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["-g", "daemon off;"]

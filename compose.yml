@@ -27,7 +27,7 @@ services:
         VITE_API_URL: http://backend:3667
     restart: on-failure:5
     ports:
-      - 80:5173
+      - 80:8080
     environment:
       VITE_SUPABASE_URL: ${SUPABASE_URL}
       VITE_SUPABASE_ANON_KEY: ${SUPABASE_KEY}

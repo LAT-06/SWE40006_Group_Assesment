@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/apps/server/start.ts",
-    "start": "tsx src/apps/server/start.ts",
+    "start": "node dist/apps/server/start.js",
     "build": "tsc --noEmit false --outDir dist",
     "type-check": "tsc --noEmit",
     "test": "vitest",
